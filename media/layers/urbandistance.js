@@ -23,18 +23,24 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         stations,
         lines;
     var updateGoby = function(e){
+        var newMaxWalkTime, newMinutesPerKm;
         try{
-            maxWalkTime = parseInt(jQuery('#'+that.idname+'-gotime').val());
+            newMaxWalkTime = parseInt(jQuery('#'+that.idname+'-gotime').val());
         } catch(e){
             return;
         }
-        var means = jQuery("input[name="+that.idname+"-goby']:checked").val();
-        if (means == "walk"){
-            minutesPerKm = 13;
-        } else if (means == "bike"){
-            minutesPerKm = 4; // ~15-16 km/h (traffic lights, no straigh line)
+        var walking = jQuery("#"+that.idname+'-gobywalk').is(":checked");
+        if (walking){
+            newMinutesPerKm = 13;
+        } else{
+            newMinutesPerKm = 4; // ~15-16 km/h (traffic lights, no straigh line)
         }
-        mapnificent.trigger("redraw");
+        if(newMinutesPerKm != minutesPerKm || newMaxWalkTime != maxWalkTime){
+            minutesPerKm = newMinutesPerKm;
+            maxWalkTime = newMaxWalkTime;
+            mapnificent.calculateLayer(that.idname);
+            mapnificent.trigger("redraw");
+        }
     };
     var updateSlider = function(e, ui){
         if (LOCK){return;}

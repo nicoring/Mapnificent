@@ -3,8 +3,9 @@ Mapnificent
 
 Mapnificent is a framework for overlaying geographical data on Google Maps using Canvas and JavaScript. No Flash or Tile-Servers. A live example with the really cool "Urban Distance" layer (inspired by [http://mapumental.channel4.com](Mapumental)) and other small layers can be found on [http://www.mapnificent.de](Mapnificent.de).
 
-The framework is currently released under [Creative Commons by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0)
-The license might get more free in the future.
+The framework is only known to work for small layers, e.g. the size of a not-so-small city like Berlin. Bigger layers might not work, because Mapnificent has many code parts which think the earth is actually flat.
+
+The framework is currently released under [Creative Commons by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0). The license might get more free in the future.
 
 A documentation on how to write layers for Mapnificent is available at docs/index.html
 

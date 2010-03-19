@@ -49,8 +49,8 @@ function Mapnificent(useroptions){
     this.offsetActive = false;
     var obj = this;
     jQuery(window).resize(function(){obj.resize.apply(obj,[]);});
-    jQuery(".activate-control").live("change", function(e){obj.activateControlChanged.apply(obj,[this]);});
-    jQuery(".activate-tab").live("change", function(e){obj.activateTabChanged.apply(obj,[this]);});
+    jQuery(".mapnificent-activate-control").live("change", function(e){obj.activateControlChanged.apply(obj,[this]);});
+    jQuery(".mapnificent-activate-tab").live("change", function(e){obj.activateTabChanged.apply(obj,[this]);});
 }
 
 Mapnificent.prototype = {
@@ -67,6 +67,7 @@ Mapnificent.prototype = {
         };
     },
     initMap : function(mapID) {
+        this.mapID = mapID;
         this.env.Gnorthwest = new google.maps.LatLng(this.env.northwest.lat, this.env.northwest.lng);
         this.env.Gsoutheast = new google.maps.LatLng(this.env.southeast.lat, this.env.southeast.lng);
         this.env.Gsouthwest = new google.maps.LatLng(this.env.southwest.lat, this.env.southwest.lng);
@@ -75,11 +76,10 @@ Mapnificent.prototype = {
         this.env.heightInKm = this.getDistanceInKm(this.env.northwest, this.env.southwest);
         this.env.blockCountX = Math.ceil(this.env.widthInKm / this.env.blockSize);
         this.env.blockCountY = Math.ceil(this.env.heightInKm / this.env.blockSize);
-        this.mapID = mapID;
         jQuery("#"+this.mapID).height(jQuery(window).height()-jQuery("#controls").height());
         this.map = new google.maps.Map2(document.getElementById(this.mapID), this.env.getGMapOptions());
         this.map.setCenter(new google.maps.LatLng(this.env.mapStartCenter.lat, this.env.mapStartCenter.lng), this.env.mapStartZoom);
-    //    this.map.enableScrollWheelZoom();
+        //    this.map.enableScrollWheelZoom();
         this.map.addControl(new GLargeMapControl());
         this.map.addControl(new GMapTypeControl());
         if(this.env.getGMapOptions()["googleBarOptions"] !== "undefined"){
@@ -91,11 +91,15 @@ Mapnificent.prototype = {
         this.mapBounds = this.map.getBounds();
         this.mapBoundsXY = this.map.fromLatLngToDivPixel(this.mapBounds.getSouthWest());
         this.geocoder = new google.maps.ClientGeocoder();
-        this.canvas_id = "yeswecanvas";
+        this.canvas_id = "mapnificent-canvas";
+        while(document.getElementById(this.canvas_id) !== null){
+            this.canvas_id += "0"; // Desperate move here
+        }
         this.elabel = new ELabel(this.env.Gsouthwest, '<canvas id="'+this.canvas_id+'" width="20" height="20"></canvas>');
         this.map.addOverlay(this.elabel);
         this.canvas = document.getElementById(this.canvas_id);
         if(!this.canvas.getContext){
+            /* Uh, oh, IE ahead!! Crash! */
           this.ctx = null;
           return;
         }
@@ -116,6 +120,7 @@ Mapnificent.prototype = {
     
     checkCompositing : function(){
         this.hasCompositing = true;
+        this.ctx.save();
         this.ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
         this.ctx.fillStyle = "rgba(255,255,255,1)";
         this.ctx.fillRect(0,0,3,3);
@@ -130,7 +135,7 @@ Mapnificent.prototype = {
 //            this.showMessage("Your browser fails some drawing tests. Your Mapnificent will not look optimal!");
             this.hasCompositing = false;
         }
-        this.ctx.globalCompositeOperation = "source-over";
+        this.ctx.restore();
         this.ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
     },
     
@@ -249,7 +254,7 @@ Mapnificent.prototype = {
         var chk = ' checked="checked"';
         if (!this.isTabActive(idname)){chk = "";}
         jQuery('#controls-'+this.layers[idname].tabid).append(jQuery('<div id="control-'+idname+'" class="control">'+
-        '<h3 class="layer-title"><input class="activate-control" type="checkbox" id="control-'+idname+'-checkbox"'+chk+'/>'+
+        '<h3 class="layer-title"><input class="mapnificent-activate-control" type="checkbox" id="control-'+idname+'-checkbox"'+chk+'/>'+
         '<label for="control-'+idname+'-checkbox">'+this.layers[idname].layerObject.getTitle()+'</label></h3>'+
         '<div id="control-'+idname+'-container"></div></div>'));
         this.layers[idname].layerObject.appendControlHtmlTo(jQuery("#control-"+idname+"-container"));
@@ -443,6 +448,7 @@ Mapnificent.prototype = {
         },0);
     },
     
+    
     getCurrentAddress : function(){
         return this.formattedAddress;
     },
@@ -455,6 +461,16 @@ Mapnificent.prototype = {
             }
         };
         this.geocoder.getLocations(latlng, callback);
+    },
+    
+    calculateLayer : function(idname){
+        jQuery("#loading").show();
+        var obj = this;
+        window.setTimeout(function(){
+            obj.layers[idname].layerObject.calculate(obj.currentPosition);
+            obj.trigger("redraw");
+            jQuery("#loading").fadeOut(200);
+        },0);
     },
     
     startCalculation : function(){
@@ -519,7 +535,7 @@ Mapnificent.prototype = {
         if(typeof(active) === "undefined" || active){
             var chk = ' checked="checked"';
         } else { var chk = ''; }
-        li.prepend('<input type="checkbox" class="activate-tab" id="activatetab-'+idname+'"'+chk+'/>');
+        li.prepend('<input type="checkbox" class="mapnificent-activate-tab" id="activatetab-'+idname+'"'+chk+'/>');
     },
     
     addLiveLoader : function(){
@@ -535,7 +551,7 @@ Mapnificent.prototype = {
         this.addTab("custom", "Load your own!", enable);
         jQuery("#controls-custom").append(''+
             '<h2>Load your own Layer</h2>'+
-            '<p><a href="documentation.html">Find the necessary information in the documentation of Mapnificent</a></p>'+
+            '<p><a href="docs/">Find the necessary information in the documentation of Mapnificent</a></p>'+
             '<span style="padding:2px 5px;">URL of Script: <input type="text" value="'+script+'" name="liveloader-script" id="liveloader-script"/></span>'+
             '<span style="padding:2px 5px;">URL of JSONP (optional): <input type="text" value="'+jsonp+'" name="liveloader-json" id="liveloader-jsonp"/></span><br/>'+
             '<input type="button" value="Add Layer" id="liveloader-addlayer"/>'+
