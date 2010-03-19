@@ -1,0 +1,182 @@
+<!DOCTYPE html> 
+<html dir="ltr" lang="en"> 
+    <head> 
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/> 
+        <title>Mapnificent - Interactive overlays of geographic data</title> 
+        <link rel="icon" type="image/png" href="media/img/favicon.png" /> 
+        <!--[if IE]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]--> 
+<!--        <link href="media/css/screen.css" rel="stylesheet" type="text/css" media="screen,projection" /> -->
+        <style type="text/css" media="screen">
+            * {
+                padding:0;
+                margin:0;
+            }
+            header, article, section, footer {
+                display:block;
+            }
+            body {
+                width:540px;
+                margin:0 auto;
+                font-family: "Lucida Grande", Verdana, Arial;
+            }
+            
+            a, a:visited {
+                color:#333;
+            }
+
+            a:hover, a:active {
+                color:#00BB0B;;
+            }
+            
+            h1 {
+                text-align:center;
+                font-size:1.6em;
+            }
+            .nav ul {
+                list-style:none;
+                padding:10px 5px;
+            }
+            
+            li {
+                margin:0 0 5px 20px;
+            }
+            
+            p {
+                padding:0 0 8px;
+            }
+            
+            pre {
+                margin: 5px 0;
+                padding:2px;
+                overflow:auto;
+                border:1px dashed #eee;
+            }
+            
+            .footer {
+                margin:50px 0 10px;
+            }
+        </style>
+        <link type="text/css" href="media/css/smoothness/jquery-ui.css" rel="stylesheet" />
+        <meta name="robots" content="index, follow" /> 
+
+       <script src="media/js/jquery.js" type="text/javascript" charset="utf-8"></script> 
+       <script src="media/js/jquery-ui.js" type="text/javascript" charset="utf-8"></script>
+    </head>
+    <body>
+        <header id="content" style="display:block">
+            <h1><img style="vertical-align:middle;margin:6px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/> Documentation</h1>
+            <nav class="nav">
+                <ul>
+                    <li><a class="toggle" href="#about">About</a></li>
+                    <li><a class="toggle" href="#your-layers">Your Layers from Open Data</a></li>
+                    <li><a class="toggle" href="#adding-layers">Adding Layers</a></li>
+                </ul>
+            </nav>
+        </header>
+        <article>
+            <section id="about" class="contentoverlay">
+                <h2>About</h2>
+                <p>Mapnificent is a web app that displays interactive layers on a map of Berlin. It's also a framework for canvas-powered geographical overlays. Read my blog post <a href="http://blog.stefanwehrmeyer.com/post/449810520/mapnificent">It's Mapnificent</a> about how Mapnificent works and how it compares to its inspiration <a href="http://mapumental.channel4.com">Mapumental</a>.</p>
+            </section>
+            <section id="your-layers">
+                <h2>Your Layers from Open Data</h2>
+                <p>If you have built a cool layer that uses <a href="http://www.opendata-network.org/">Open Data</a> to visualize something mapnificent (see below on how to do that), then please send the necessary files to mail@mapnificent.de and I will include them in the online version.</p>
+            </section>
+            <section id="adding-layers">
+                <h2>Adding Layers</h2>
+                <p>Mapnificent is supposed to be extensible with layers &mdash; layers you are supposed to contribute!</p>
+                <p>A layer consists of a JavaScript file that contains the layer logic and optionally a JSONP file that contains the layer data.</p>
+                <h3>Layer logic</h3>
+                <p>The layer logic must be encapsulated in a JavaScript Module constructor that should close over a mapnificent reference that should be given as a parameter:</p>
+                <pre>
+MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
+    /* mapnificent.createLayer returns a default Layer object */
+    var that = mapnificent.createLayer(); 
+    that.idname = "awesomeLayer";
+    // tabid will be overriden with "custom" when loaded live
+    that.tabid = "someTabId"; 
+    var privateVariable;
+    var privateFunction = function(e){
+        if (LOCK){return;}
+        LOCK = true;
+        mapnificent.trigger("redraw");
+        LOCK = false;
+    };
+    that.getTitle = function(){
+        return "Awesome Layer";
+    };
+    that.appendControlHtmlTo = function(container){
+        container.html('Some Awesome HTML');
+    };
+    that.activate = function(){
+        /* if empty can be left out */
+    };
+    that.deactivate = function(){
+        /* if empty can be left out */
+    };
+    that.getDrawingLevel = function(){
+        return 3; // defaults to 20 if not set
+    };
+    that.setup = function(dataobjs){
+        /* stores layerdata in private variable */
+        crimes = dataobjs[0];
+    };
+    that.redraw = function(ctx){
+        /* Converts a geographical point to a canvas coordinate */
+        var p = mapnificent.getCanvasXY({"lat": 52, "lng": 12});
+        ctx.save();
+        ctx.fillRect(p.x, p.y, 20,20);
+        ctx.restore();
+    };
+    return that; //don't forget that
+}(mapnificent)); // dont'forget that mapnificent either
+                </pre>
+                <p>Mapnificent provides some handy methods. One has been used in this example: <tt>getCanvasXY</tt> converts geographic coordinates into coordinates that map to the canvas.</p>
+                <p>Some other useful methods and values:</p>
+                <ul>
+                    <li><tt>mapnificent.getDistanceInKm({"lat":52.0, "lng":13.0}, {"lat":52.4, "lng":14.0})</tt> returns the distance between to geographical points in kilometers</li>
+                    <li><tt>mapnificent.inRange({"lat":52.0, "lng":13.0})</tt> returns <tt>true</tt> if geographic position is in the layer area.</li>
+                    <li><tt>mapnificent.getDrawingContext()</tt> returns the drawing context of the canvas.</li>
+                    <li><tt>mapnificent.getCurrentPosition()</tt> returns the current position (in the form <tt>{"lat": 52.0, "lng": 13.0}</tt>) or <tt>null</tt> if not set.</li>
+                    <li><tt>mapnificent.showMessage("My message")</tt> shows a message briefly to the user. Only use if really necessary.</li>
+                    <li><tt>mapnificent.hasCompositing</tt> returns <tt>true</tt> if most compositing operations are available (a lot are currently broken in webkit).</li>
+                    <li><tt>mapnificent.bind("myEvent", function(){})</tt> A really simple event handling for mapnificent. Current events are only "redraw" and "setPosition" (both of which you already are automatically subscribed to via <tt>redraw</tt> and <tt>calculate</tt>)</li>
+                    <li><tt>mapnificent.trigger("myEvent")</tt> triggers the event and fires every function previously bound to that event.</li>
+                    <li><tt>mapnificent.env</tt> is an object and contains all options that can be set with mapnificent and other useful values like <tt>widthInKm</tt> of the canvas etc. Inspect it to see what else is in there.</li>
+                    <li><tt>mapnificent.map</tt> is the map instance (currently Google Maps). You may use their API, but be aware that the map engine may be subject to change.</li>
+                    <li><tt>mapnificent.DegToRadFactor</tt>, <tt>mapnificent.RadToDegFactor</tt>, <tt>mapnificent.circleRadians</tt> are always useful. Not subject to change.</li>
+                    <li>There is also a not-too-clever hashing of geo positions into blocks in mapnificent, that can be used by layers. Check out the PublicTransport implementation.</li>
+                    <li>The <tt>jQuery</tt> object is available.</li>
+                </ul>
+                <h3>Layer Data</h3>
+                <p>Layer data should be in its own file and in JSONP format like so:</p>
+                <pre>
+MAPNIFICENT_LAYERDATA.awesomeLayer = [DataObject1, DataObject2];
+                </pre>
+                <p>Remember the <tt>dataobjs</tt> in your <tt>setup</tt> method? Here is the array that will be passed.</p>
+                <h3>Final step</h3>
+                <p>Mapnificent will go over the objects in <tt>MAPNIFICENT_LAYER</tt> and set them up as layers.</p>
+                <p>You can use the "Load your own!" Tab to load your layer from another server and use it with mapnificent! The information where the layer is located is stored in a cookie, so you don't have to enter it over and over when reloading the page.</p>
+                <p>If anything goes wrong, check JavaScript Console, that everything is named right and read the mapnificent source code (it's not really long or complicated).</p>
+                <h3>Supported Browsers and Performance</h3>
+                <p>You should take care that your layer works in at least latest Firefox, Safari/Chromium and Opera. Your layer should also be fast enough to be usable: you should rather take some time to pre-calculate values (e.g. in <tt>calculate</tt>) than making your controls really slow.</p>
+                <p>Also note that the canvas implementation differs between the supported browsers and you should only rely on the intersection of their feature sets. Some browsers (e.g. Opera!) might sometimes need a special handling to improve performance (check with e.g. <tt>jQuery.browser.opera</tt>, see PublicTransport implementation for details).</p>
+            </section>
+        </article>
+        <footer class="footer">
+            <p>Mapnificent  - by <a href="http://stefanwehrmeyer.com">Stefan Wehrmeyer</a></p>
+        </footer>
+        <script type="text/javascript">
+        var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+        document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+        try {
+        var pageTracker = _gat._getTracker("UA-15128105-1");
+        pageTracker._trackPageview();
+        } catch(err) {}
+        </script>
+    </body> 
+</html>
