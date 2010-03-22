@@ -381,8 +381,18 @@ Mapnificent.prototype = {
         }
         this.resize();
         this.bind("redraw", this.redraw);
-        
-        this.setPositionListener = GEvent.bind(this.map, "click", this, this.setNewPosition);
+        var clicktimeout = null, obj=this, lastclick = null;
+        this.setPositionListener = GEvent.bind(this.map, "click", this, function(overlay, latlng){
+            if(lastclick != null && lastclick+250 >= new Date().getTime() && clicktimeout !== null){
+                window.clearTimeout(clicktimeout);
+                return;
+            }
+            clicktimeout = window.setTimeout(function(){
+                obj.setNewPosition.apply(obj,[overlay, latlng]);
+                clicktimeout = null;
+            }, 250);
+            lastclick = new Date().getTime();
+        });
         this.bind("setPosition", this.newPositionSet);
         if(this.env.setStartAtPosition !== null){
             this.setNewPosition(null,new google.maps.LatLng(this.env.setStartAtPosition.lat, this.env.setStartAtPosition.lng));
@@ -475,9 +485,7 @@ Mapnificent.prototype = {
     
     startCalculation : function(){
         for(var idname in this.layers){
-            if(this.isLayerActive(idname)){
-                this.layers[idname].layerObject.calculate(this.currentPosition);
-            }
+            this.layers[idname].layerObject.calculate(this.currentPosition);
         }
     },
     
