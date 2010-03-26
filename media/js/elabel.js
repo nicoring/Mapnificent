@@ -42,7 +42,15 @@
       ELabel.prototype.initialize = function(map) {
         var div = document.createElement("div");
         div.style.position = "absolute";
-        div.innerHTML = '<div class="' + this.classname + '">' + this.html + '</div>' ;
+        /* Modifications ahead: also be able to not use innerHTML */
+        if(typeof(this.html) !== "string"){
+            var second_div = document.createElement("div");
+            second_div.className = this.classname;
+            second_div.appendChild(this.html)
+            div.appendChild(second_div);
+        } else {
+            div.innerHTML = '<div class="' + this.classname + '">' + this.html + '</div>' ;
+        }
         map.getPane(G_MAP_FLOAT_SHADOW_PANE).appendChild(div);
         this.map_ = map;
         this.div_ = div;

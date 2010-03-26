@@ -68,6 +68,7 @@ Mapnificent.prototype = {
     },
     initMap : function(mapID) {
         this.mapID = mapID;
+        this.env.ie = false;
         this.env.Gnorthwest = new google.maps.LatLng(this.env.northwest.lat, this.env.northwest.lng);
         this.env.Gsoutheast = new google.maps.LatLng(this.env.southeast.lat, this.env.southeast.lng);
         this.env.Gsouthwest = new google.maps.LatLng(this.env.southwest.lat, this.env.southwest.lng);
@@ -79,7 +80,7 @@ Mapnificent.prototype = {
         jQuery("#"+this.mapID).height(jQuery(window).height()-jQuery("#controls").height());
         this.map = new google.maps.Map2(document.getElementById(this.mapID), this.env.getGMapOptions());
         this.map.setCenter(new google.maps.LatLng(this.env.mapStartCenter.lat, this.env.mapStartCenter.lng), this.env.mapStartZoom);
-        //    this.map.enableScrollWheelZoom();
+        //this.map.enableScrollWheelZoom();
         this.map.addControl(new GLargeMapControl());
         this.map.addControl(new GMapTypeControl());
         if(this.env.getGMapOptions()["googleBarOptions"] !== "undefined"){
@@ -95,11 +96,20 @@ Mapnificent.prototype = {
         while(document.getElementById(this.canvas_id) !== null){
             this.canvas_id += "0"; // Desperate move here
         }
-        this.elabel = new ELabel(this.env.Gsouthwest, '<canvas id="'+this.canvas_id+'" width="20" height="20"></canvas>');
+        var cnvs = document.createElement("canvas");
+        cnvs.id = this.canvas_id;
+        cnvs.width=20;
+        cnvs.height=20;
+        this.elabel = new ELabel(this.env.Gsouthwest, cnvs);
         this.map.addOverlay(this.elabel);
         this.canvas = document.getElementById(this.canvas_id);
-        if(!this.canvas.getContext){
-            /* Uh, oh, IE ahead!! Crash! */
+        if(typeof(G_vmlCanvasManager) !== "undefined"){
+            this.env.ie = true;
+            alert("Your browser might or might not work. Rather use a better one.");
+            G_vmlCanvasManager.initElement(this.canvas);
+        }
+        if(typeof(this.canvas.getContext) === "undefined"){
+            /* Uh, oh, no canvas ahead!! Crash! */
           this.ctx = null;
           return;
         }
@@ -119,6 +129,10 @@ Mapnificent.prototype = {
     },
     
     checkCompositing : function(){
+        if(typeof(this.ctx.getImageData) === "undefined"){
+            this.hasCompositing = false;
+            return;
+        }
         this.hasCompositing = true;
         this.ctx.save();
         this.ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
