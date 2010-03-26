@@ -128,9 +128,11 @@ header, article, nav, section, aside, footer, canvas {
 .close {
     float:right;
     text-decoration:none !important;
+    margin-right:5px;
 }
 .close:after{
-    font-size:2em;
+    padding:0 5px;
+    font-size:1em;
     content:'╳';
 }
 

@@ -16,7 +16,6 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
         imageLoaded = false,
         img = new Image();
     img.onload = function(){ imageLoaded = true; };
-    img.src = 'media/layers/wohnlagenkarte2009s.png';
     img.alt = "Wohnlagenkarte 2009";
     var update = function(e, ui){
         if (LOCK){return;}
@@ -50,6 +49,10 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
     };
     that.getDrawingLevel = function(){
         return 3;
+    };
+    that.setup = function(objs){
+        // Load here to avoid blocking
+        img.src = 'media/layers/wohnlagenkarte2009s.png';
     };
     that.redraw = function(ctx){
         if (!imageLoaded){return;}
