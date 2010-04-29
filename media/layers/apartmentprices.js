@@ -64,7 +64,7 @@ MAPNIFICENT_LAYER.apartmentPrices = (function (mapnificent){
                 ctx.moveTo(nxy.x,nxy.y);
                 ctx.arc(nxy.x,nxy.y,radius, 0, mapnificent.circleRadians, true);
             }catch(e){
-                console.log(e);
+//                console.log(e);
             }
             ctx.fill();
         }

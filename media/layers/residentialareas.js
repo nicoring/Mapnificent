@@ -15,7 +15,11 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
         currentOpacity = 0.7,
         imageLoaded = false,
         img = new Image();
-    img.onload = function(){ imageLoaded = true; };
+    img.onload = function(){
+        imageLoaded = true;
+        jQuery("#"+that.idname+'-loading').css("visibility", "hidden");
+        mapnificent.trigger("redraw");
+    };
     img.alt = "Wohnlagenkarte 2009";
     var update = function(e, ui){
         if (LOCK){return;}
@@ -30,7 +34,7 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
     };
     that.appendControlHtmlTo = function(container){
         container.html(''+
-         '<div style="float:right"><span style="padding:0 15px">Overlay of <a href="http://www.stadtentwicklung.berlin.de/wohnen/mietspiegel/de/wohnlagenkarte.shtml">Wohnlagenkarte Berlin 2009</a>'+
+         '<div style="float:right"><span style="color:#c00;visibility:hidden;" id="'+that.idname+'-loading">Loading...</span> <span style="padding:0 15px">Overlay of <a href="http://www.stadtentwicklung.berlin.de/wohnen/mietspiegel/de/wohnlagenkarte.shtml">Wohnlagenkarte Berlin 2009</a>'+
          ' - <span style="color:#9D2B2A">Good Residential Area</span>, <span style="color:#F09A4F">Normal Residential Area</span>, <span style="color:#FED963">Simple Residential Area</span></span></div>'+
          '<div>Slide to change transparency:</div>'+
          '<div id="'+that.idname+'-slider" class="slider"></div>'+
@@ -43,6 +47,10 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
     };
     that.activate = function(){
         jQuery("#"+that.idname+'-slider').slider("enable");
+        if (img.src === null || img.src === ""){
+            jQuery("#"+that.idname+'-loading').css("visibility", "visible");
+            img.src = 'media/layers/wohnlagenkarte2009s.png';
+        }
     };
     that.deactivate = function(){
         jQuery("#"+that.idname+'-slider').slider("disable");
@@ -52,7 +60,6 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
     };
     that.setup = function(objs){
         // Load here to avoid blocking
-        img.src = 'media/layers/wohnlagenkarte2009s.png';
     };
     that.redraw = function(ctx){
         if (!imageLoaded){return;}
@@ -61,6 +68,7 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
         var w = bottomright.x - topleft.x;
         var h = bottomright.y - topleft.y;
         ctx.save();
+//        ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = currentOpacity;
         ctx.drawImage(img, topleft.x, topleft.y, w, h);
         ctx.restore();
