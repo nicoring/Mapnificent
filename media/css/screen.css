@@ -40,11 +40,20 @@ header, article, nav, section, aside, footer, canvas {
     display:block;
 }
 #controls {
+    margin:15px 0 0 0;
     height:220px;
     width:100%;
+    border:0px;
     overflow:auto;
     overflow-x:hidden;
     overflow-y:auto;
+}
+
+#controls-tabnavigation {
+    position:absolute;
+    bottom:200px;
+    left:0px;
+    z-Index:999;
 }
 
 .center {
