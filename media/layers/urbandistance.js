@@ -59,11 +59,11 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             ctx.moveTo(nxy.x,nxy.y);
             ctx.arc(nxy.x,nxy.y,radius, 0, mapnificent.circleRadians, true);
         }catch(e){
-            console.log(e);
+/*            console.log(e);
             console.log(pos.lat, pos.lng);
             console.log(nxy.x, nxy.y);
             console.log(radius);
-            console.log(mapnificent.circleRadians);
+            console.log(mapnificent.circleRadians);*/
         }
     };
     var calculateTimes = function(stationId, minutes, line, stay){
