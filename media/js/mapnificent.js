@@ -243,7 +243,7 @@ Mapnificent.prototype = {
                 try {
                     this.customEvents[ev][i].apply(obj,[]);
                 } catch(e){
-                    console.log(e);
+                    //console.log(e);
                 }
             }
         }
