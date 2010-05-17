@@ -49,7 +49,7 @@ MAPNIFICENT_LAYER.residentialAreas = (function (mapnificent){
         jQuery("#"+that.idname+'-slider').slider("enable");
         if (img.src === null || img.src === ""){
             jQuery("#"+that.idname+'-loading').css("visibility", "visible");
-            img.src = 'media/layers/wohnlagenkarte2009s.png';
+            img.src = 'http://mapnificent.stefanwehrmeyer.com/media/layers/wohnlagenkarte2009s.png';
         }
     };
     that.deactivate = function(){
