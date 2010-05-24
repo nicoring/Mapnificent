@@ -13,7 +13,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     that.idname = "urbanDistance";
     var LOCK = false
         , minutesPerKm = 13
-        , MAX_ACCEPTABLE_TIME = 60
+        , colorMaxAcceptableTime = 60
+        , colorBaseGradientColor = 120
+        , colorMaxGradientColor = 0
         , maxWalkTime = 10
         , positionCounter = -1
         , startPositions = {}
@@ -23,10 +25,11 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , blockGrid
         , stations
         , lines
-        , defaultStartAtPosition = {"lat": 52.51622086393074, "lng": 13.37911605834961}
+        , defaultStartAtPosition = {"lat":52.525849,"lng":13.368919}
         , intersection = false
         , colored = false
-        , colorCache = {};
+        , colorCache = {}
+        , colorSorted = {};
         
     var updateGoby = function(e){
         var newMaxWalkTime, newMinutesPerKm;
@@ -52,6 +55,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         return function(e, ui){
             if (startPositions[index].LOCK){return;}
             startPositions[index].LOCK = true;
+//            startPositions[index].minutes = parseInt(jQuery(this).val()); // HTML5 Future
             startPositions[index].minutes = ui.value;
             mapnificent.trigger("redraw");
             jQuery("#"+that.idname+'-'+index+'-timeSpan').text(startPositions[index].minutes);
@@ -62,7 +66,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     that.getTitle = function(){
         return "Urban Distance";
     };
-    that.appendControlHtmlTo = function(container){
+    var appendControlHtmlTo = function(container){
         container.html(''+
 /*            '<div style="margin-right:15%;float:right;position:relative;top:-1.4em">'+
             '<input type="radio" class="'+that.idname+'-goby" id="'+that.idname+'-gobywalk" name="'+that.idname+'-goby" value="walk" checked="checked"/>'+
@@ -90,7 +94,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         jQuery('#'+that.idname+'-gotime').change(updateGoby);*/
         jQuery('#'+that.idname+'-intersection').change(function(e){
             if(!mapnificent.hasCompositing){
-                mapnificent.showMessage("Your browser does not support advanced canvas compositing!");
+                mapnificent.showMessage("Only Firefox and Opera support intersections!");
                 $(this).attr("checked", null);
                 return;
             }
@@ -114,7 +118,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                  '<span>Area reachable in max. '+
                  '<strong id="'+that.idname+'-'+index+'-timeSpan"></strong> minutes <small>(no guarantee)</small></span>'+
                  '<input type="button" value="Remove" id="'+that.idname+'-'+index+'-remove"/>'+
-                '<div id="'+that.idname+'-'+index+'-slider" class="slider"></div>'+
+                '<div id="'+that.idname+'-'+index+'-slider" class="slider"></div>'+ // Use HTML5 range some day here
                 '<div class="'+that.idname+'-'+index+'-address"></div>'+
                 '</div>');
         jQuery('#'+that.idname+'-'+index+'-slider').slider({ min: 0, max: 180,
@@ -149,33 +153,43 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         }; 
     };
     
+    var afterCalculate = function(index){
+        return function(){
+            LOCK=false;
+            mapnificent.hideMessage();
+            startPositions[index].ready = true;
+            mapnificent.trigger("redraw");
+            
+        };
+    };
+    
     var addPosition = function(latlng){
         if(LOCK){return;}
         if(!mapnificent.inRange({"lat":latlng.lat, "lng":latlng.lng})){
             mapnificent.showMessage("Out of area!");
             return;
         }
-        LOCK = true;
         mapnificent.showMessage("Calculating...");
+        LOCK = true;
         positionCounter += 1;
         var index = positionCounter;
-        window.setTimeout(function(){
-            var marker = mapnificent.createMarker(latlng, {"draggable":true});
-            marker.setImage("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
-            startPositions[index] = {"marker": marker, "latlng": latlng, "minutes": 15, "address": "Loading...", "LOCK": false};
-            mapnificent.getAddressForPoint(latlng, setAddressForIndex(index));
-            mapnificent.addEventOnMarker("click", marker, openPositionWindow(index));
-            mapnificent.addEventOnMarker("mouseover", marker, highlightMarker(index));
-            mapnificent.addEventOnMarker("mouseout", marker, unhighlightMarker(index));
-            mapnificent.addEventOnMarker("dragstart", marker, function(){setAddressForIndex(index)("");});
-            mapnificent.addEventOnMarker("dragend", marker, function(ll){
-                startPositions[index].latlng = {"lat": ll.lat(), "lng": ll.lng()};
-                that.calculate(index, function(){mapnificent.trigger("redraw");});
-                mapnificent.getAddressForPoint(startPositions[index].latlng, setAddressForIndex(index));
-            });
-            addPositionHtml(index);
-            that.calculate(index, function(){mapnificent.hideMessage();mapnificent.trigger("redraw");LOCK=false;});
-        }, 5);
+        var marker = mapnificent.createMarker(latlng, {"draggable":true});
+        marker.setImage("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
+        startPositions[index] = {"marker": marker, "latlng": latlng, "minutes": 15, "address": "Loading...", "LOCK": false, "ready": false};
+        mapnificent.getAddressForPoint(latlng, setAddressForIndex(index));
+        mapnificent.addEventOnMarker("click", marker, openPositionWindow(index));
+        mapnificent.addEventOnMarker("mouseover", marker, highlightMarker(index));
+        mapnificent.addEventOnMarker("mouseout", marker, unhighlightMarker(index));
+        mapnificent.addEventOnMarker("dragstart", marker, function(){setAddressForIndex(index)("");});
+        mapnificent.addEventOnMarker("dragend", marker, function(ll){
+            startPositions[index].ready = false;
+            startPositions[index].latlng = {"lat": ll.lat(), "lng": ll.lng()};
+            mapnificent.showMessage("Calculating...");
+            that.calculate(index, afterCalculate(index));
+            mapnificent.getAddressForPoint(startPositions[index].latlng, setAddressForIndex(index));
+        });
+        addPositionHtml(index);
+        that.calculate(index, afterCalculate(index));
     };
     
     var removePosition = function(index){
@@ -226,7 +240,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         }
     */
     
-    that.setup = function(dataobjs){
+    that.setup = function(dataobjs, controlcontainer){
         stations = dataobjs[0];
         lines = dataobjs[1];
         blockGrid = [];
@@ -247,10 +261,13 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                     }
             }
         }
+        appendControlHtmlTo(controlcontainer);
         addPosition(defaultStartAtPosition);
     };
     that.calculate = function(index, clb){
+        var startTimer = new Date().getTime();
         stationMap[index] = {};
+        colorSorted[index] = null;
         var startPos = startPositions[index].latlng;
         var numberOfClosest = 3;
         var minDistances=[], minStations=[];
@@ -263,35 +280,90 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                     nextStations = jQuery.merge(nextStations, blockGrid[indizes[j][0]][indizes[j][1]]);
                 }
             }
-            i+=1;
-        }
-        for(var i=0;i<nextStations.length;i+=1){
-            var distance = mapnificent.getDistanceInKm(startPos, stations[nextStations[i]].pos);
-            var minutes = distance * minutesPerKm;
-            if (minutes <= maxWalkTime){
-                calculateTimes(index, nextStations[i], minutes, null);
+            i += 1;
+            if(nextStations.length>10){
+                i += 1;
             }
         }
-        if(clb){
-            clb();
-        }
+        
+        var travelFromStation = function(stationIndex){
+            if(stationIndex < 0){
+                if(colored){
+                    sortByMinutes(index);
+                }
+                console.log("Time: ", new Date().getTime() - startTimer);
+                return clb;
+            }
+            var stationId = nextStations[0];
+            return function(){
+                var distance = mapnificent.getDistanceInKm(startPos, stations[stationId].pos);
+                var minutes = distance * minutesPerKm;
+                if (minutes <= maxWalkTime){
+                    calculateTimes(index, stationId, minutes, null);
+                }
+                
+                window.setTimeout(travelFromStation(--stationIndex), 1);
+            };
+        };
+        var k = nextStations.length - 1;
+        window.setTimeout(travelFromStation(k), 1);
+    };
+    
+    var sortByMinutes = function(index){
+        colorSorted[index] = stationList.slice();
+        colorSorted[index].sort(function(a,b){
+            if(typeof(stationMap[index][a]) === "undefined"){
+                var x = Infinity;
+            } else {
+                var x = stationMap[index][a].minutes;
+            }
+            if(typeof(stationMap[index][b]) === "undefined"){
+                var y = Infinity;
+            } else {
+                var y = stationMap[index][b].minutes;
+            }            
+            return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+        });
     };
     
     var calculateTimes = function(index, stationId, minutes, line, stay){
-        if (typeof(stationMap[index][stationId]) !=="undefined" && stationMap[index][stationId].minutes <= minutes){
+        var station = stations[stationId];
+        if (line != null && typeof(stationMap[index][stationId]) !== "undefined" && 
+                stationMap[index][stationId].minutes <= minutes){
+            /*  Same line look-ahead:
+                I got here faster before, but maybe switching lines caused a delay for
+                the next station on this line, so I'll be faster at the next station even
+                though it took me longer to get to the current one. Let's check it out!
+            */
+            for(var i=0;i<station.reachableStations.length;i++){
+                if(station.reachableStations[i].line == line){
+                    // a station on the same line
+                    var nextMinutes = minutes + station.reachableStations[i].minutes + stay;
+                    if (typeof(stationMap[index][station.reachableStations[i].stationId]) === "undefined" ||
+                            stationMap[index][station.reachableStations[i].stationId].minutes > nextMinutes){
+                        // Yeah, I can get to the next station on this line faster than before, let's go there!
+                        calculateTimes(index, station.reachableStations[i].stationId, nextMinutes, 
+                                station.reachableStations[i].line, station.reachableStations[i]["stay"]);
+                    }
+                }
+            }
             return;
         }
-        var station = stations[stationId];
         stationMap[index][stationId] = {"minutes": minutes};
         for(var i=0;i<station.reachableStations.length;i++){
             if (line == null){
+                // My first station! I don't have to wait!
                 var nextMinutes = minutes + station.reachableStations[i].minutes;
             } else if(station.reachableStations[i].line == line){
+                // Same line! The current transport may pause here for some time
                 var nextMinutes = minutes + station.reachableStations[i].minutes + stay;
             } else {
-                var nextMinutes = minutes + getWaitTime(stationId, line, station.reachableStations[i].stationId, station.reachableStations[i].line) + station.reachableStations[i].minutes;
+                // Switch line! Guess the wait time for the next line
+                var nextMinutes = minutes + getWaitTime(stationId, line, station.reachableStations[i].stationId, 
+                        station.reachableStations[i].line) + station.reachableStations[i].minutes;
             }
-            calculateTimes(index, station.reachableStations[i].stationId, nextMinutes, station.reachableStations[i].line, station.reachableStations[i]["stay"]);
+            calculateTimes(index, station.reachableStations[i].stationId, nextMinutes, 
+                    station.reachableStations[i].line, station.reachableStations[i]["stay"]);
         }
         return true;
     };
@@ -307,28 +379,29 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     var getColorFor = function(min){
         if(min == 0){min = 1;}
         if(typeof(colorCache[min]) === "undefined"){
-            colorCache[min] = "hsla("+(120 - Math.floor(min/MAX_ACCEPTABLE_TIME*120))+", 100%, 50%, 1)";
+            colorCache[min] = "hsla("+(colorBaseGradientColor - Math.floor(min/colorMaxAcceptableTime*(colorBaseGradientColor+colorMaxGradientColor)))+", 100%, 50%, 0.75)";
         }
         return colorCache[min];
     };
+    
+    that.getTimeForStationId = function(stid){
+        return stationMap[0][stid].minutes;
+    };
 
-    var drawMinuteCircle = function(ctx, pos, minutes, minuteValue){
+    var drawMinuteCircle = function(ctx, pos, minutes, minuteValue, prefunc){
         var mins = Math.min((minuteValue - minutes),maxWalkTime);
         var radius = Math.max(mins * pixelPerMinute, 1);
         var nxy = mapnificent.getCanvasXY(pos);
         try {
-            if(colored){
-                var grad = ctx.createRadialGradient(nxy.x,nxy.y,0,nxy.x,nxy.y,radius);  
-                grad.addColorStop(0, getColorFor(minutes));
-                grad.addColorStop(0.5, getColorFor(Math.floor(minutes + (mins/2))));
-                grad.addColorStop(1, getColorFor(minutes+mins));
-                ctx.fillStyle = grad;
-            } else {
-                
+            if(prefunc){
+                prefunc(ctx, pos, minutes, minuteValue, mins, nxy, radius);
             }
-            ctx.moveTo(nxy.x,nxy.y);
-            ctx.arc(nxy.x,nxy.y,radius, 0, mapnificent.circleRadians, true);
+           ctx.moveTo(nxy.x,nxy.y);
+           ctx.arc(nxy.x,nxy.y,radius, 0, mapnificent.circleRadians, true);
             // ctx.fillRect(xy.x-radius, xy.y-radius, radius*2, radius*2);
+            // ctx.font = "8pt Arial";
+            // ctx.fillText(""+parseInt(minutes), nxy.x,nxy.y);
+            // ctx.textAlign = "center";
         }catch(e){
             console.log(e);
             console.log(pos.lat, pos.lng);
@@ -336,6 +409,15 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             console.log(radius);
             console.log(mapnificent.circleRadians);
         }
+    };
+    
+    
+    var addMinuteGradient = function(ctx, pos, minutes, minuteValue, mins, nxy, radius){
+        var grad = ctx.createRadialGradient(nxy.x,nxy.y,0,nxy.x,nxy.y,radius);  
+        grad.addColorStop(0, getColorFor(minutes));
+        grad.addColorStop(0.5, getColorFor(Math.floor(minutes + (mins/2))));
+        grad.addColorStop(1, getColorFor(minutes+mins));
+        ctx.fillStyle = grad;
     };
     
     var fillGreyArea = function(ctx){
@@ -349,65 +431,85 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         ctx.fillRect(xy.x,xy.y,mapnificent.env.map_width,mapnificent.env.map_height);
     };
     
-    redrawIndex = function(ctx, index){
-        try {
+    var redrawTransparent = function(ctx){
+        if(!intersection){
+           fillGreyArea(ctx);
+           ctx.globalCompositeOperation = "destination-out";
+        } else {
+            ctx.globalCompositeOperation = "source-over";
+        }
+        var count = 0;
+        ctx.fillStyle = "rgba(75,75,75,0.8)";
+        for(var index in startPositions){
+            if (!startPositions[index].ready){continue;}
+            if(count == 1 && intersection){
+                ctx.globalCompositeOperation = "destination-in";
+            }
+            ctx.beginPath();
+            drawMinuteCircle(ctx, startPositions[index].latlng, 0, startPositions[index].minutes);
+            if(!jQuery.browser.opera && !intersection){
+                ctx.fill();
+            }
             for (var i=0; i<stationList.length;i++){
                 var stationId = stationList[i];
                 var station = stations[stationId];
                 if (typeof station.pos !== "object" || station.pos === null){continue;}
                 if (typeof stationMap[index][stationId] === "undefined"){continue;}
                 if (stationMap[index][stationId].minutes > startPositions[index].minutes){continue;}
-                if(colored || (!jQuery.browser.opera  && !intersection)){
+                if(!jQuery.browser.opera  && !intersection){
                     ctx.beginPath();
                 }
                 drawMinuteCircle(ctx, station.pos, stationMap[index][stationId].minutes, startPositions[index].minutes);
-                if(colored || (!jQuery.browser.opera && !intersection)){
+                if(!jQuery.browser.opera && !intersection){
                      ctx.fill();
                 }
             }
-        }catch(e){
-            console.log(e);
-        }
-    };
-    
-    that.redraw = function(ctx){
-        pixelPerMinute = (1/minutesPerKm) * mapnificent.env.pixelPerKm;
-        ctx.save();
-        if(!intersection && !colored){
-            fillGreyArea(ctx);
-            ctx.globalCompositeOperation = "destination-out";
-        } else if(colored){
-            ctx.globalCompositeOperation = "destination-over";
-        }
-        var count = 0;
-        ctx.fillStyle = "rgba(75,75,75,0.8)";
-        for(var index in startPositions){
-            if(count == 1 && intersection && !colored){
-                ctx.globalCompositeOperation = "destination-in";
-            }
-            ctx.beginPath();
-            drawMinuteCircle(ctx, startPositions[index].latlng, 0, startPositions[index].minutes);
-
-            if(colored || (!jQuery.browser.opera && !intersection)){
-                ctx.fill();
-            }
-            redrawIndex(ctx, index);
             if(jQuery.browser.opera || intersection){
                ctx.fill();
             }
             count += 1;
         }
-        if(intersection && !colored){
+        if(intersection){
             fillGreyArea(ctx);
         }
+        
+    };
+    
+    var redrawColored = function(ctx){
+        for(var index in startPositions){
+            if(colorSorted[index] == null){
+                sortByMinutes(index);
+            }
+            for (var i=colorSorted[index].length -1; i>=0;i--){
+                var stationId = colorSorted[index][i];
+                var station = stations[stationId];
+                if (typeof station.pos !== "object" || station.pos === null){continue;}
+                if (typeof stationMap[index][stationId] === "undefined"){continue;}
+                if (stationMap[index][stationId].minutes > startPositions[index].minutes){continue;}
+                ctx.beginPath();
+                drawMinuteCircle(ctx, station.pos, stationMap[index][stationId].minutes, startPositions[index].minutes, addMinuteGradient);
+                ctx.fill();
+            }
+            ctx.beginPath();
+            drawMinuteCircle(ctx, startPositions[index].latlng, 0, startPositions[index].minutes, addMinuteGradient);
+            ctx.fill();
+        }
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.globalCompositeOperation = "destination-out";
+        ctx.fillStyle = "rgba(255,255,255,1)";
+        var xy = mapnificent.getCanvasXY(mapnificent.env.northwest);
+        ctx.fillRect(xy.x,xy.y,mapnificent.env.map_width,mapnificent.env.map_height);
+        ctx.restore();
+    };
+    
+    that.redraw = function(ctx){
+        pixelPerMinute = (1/minutesPerKm) * mapnificent.env.pixelPerKm;
+        ctx.save();
         if (colored){
-            ctx.save();
-            ctx.globalAlpha = 0.5;
-            ctx.globalCompositeOperation = "destination-out";
-            ctx.fillStyle = "rgba(255,255,255,1)";
-            var xy = mapnificent.getCanvasXY(mapnificent.env.northwest);
-            ctx.fillRect(xy.x,xy.y,mapnificent.env.map_width,mapnificent.env.map_height);
-            ctx.restore();
+            redrawColored(ctx);
+        } else {
+            redrawTransparent(ctx);
         }
         ctx.restore();
     };
