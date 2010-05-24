@@ -45,19 +45,18 @@ var Mapnificent = (function(useroptions){
         that.layers = {};
         that.tabs = [];
         that.offsetActive = false;
-        jQuery(window).resize(function(){that.resize.apply(that,[]);});
+        jQuery(window).resize(function(){that.resize();});
         jQuery(".mapnificent-activate-control").live("change", function(e){that.activateControlChanged.apply(that,[this]);});
         jQuery(".mapnificent-activate-tab").live("change", function(e){that.activateTabChanged.apply(that,[this]);});
 
         that.createLayer = function(){
             return {
-                getTitle :           function(){return "";},
-                appendControlHtmlTo :  function(container){},
-                activate :             function(){},
-                deactivate :           function(){},
-                getDrawingLevel :      function(){return 20;},
-                redraw :               function(ctx){},
-                setup :                function(dataobjs){}
+                getTitle :          function(){return "";},
+                activate :          function(){},
+                deactivate :        function(){},
+                getDrawingLevel :   function(){return 20;},
+                redraw :            function(ctx){},
+                setup :             function(dataobjs, container){}
             };
         };
     
@@ -277,13 +276,7 @@ var Mapnificent = (function(useroptions){
             '<h3 class="layer-title"><input class="mapnificent-activate-control" type="checkbox" id="control-'+idname+'-checkbox"'+chk+'/>'+
             '<label for="control-'+idname+'-checkbox">'+that.layers[idname].layerObject.getTitle()+'</label></h3>'+
             '<div id="control-'+idname+'-container"></div></div>'));
-            that.layers[idname].layerObject.appendControlHtmlTo(jQuery("#control-"+idname+"-container"));
-            if(!that.isLayerActive(idname)){
-                that.layers[idname].layerObject.deactivate();
-            } else {
-                that.layers[idname].layerObject.activate();
-                jQuery('#control-'+idname).addClass("activeLayer");
-            }
+            return jQuery("#control-"+idname+"-container");
         };
     
         that.activateControlChanged = function(control) {
@@ -318,10 +311,12 @@ var Mapnificent = (function(useroptions){
         };
     
         that.isTabActive = function(idname) {
+            return true;
             return jQuery("#activatetab-"+that.layers[idname].tabid).is(":checked");
         };
     
         that.isLayerControlActive = function(idname) {
+            return true;
             return jQuery('#control-'+idname+'-checkbox').is(":checked");
         };
     
@@ -416,8 +411,14 @@ var Mapnificent = (function(useroptions){
                 tabid = "other";
             }
             that.layers[idname].tabid = tabid;
-            that.layers[idname].layerObject.setup(that.layers[idname].data);
-            that.refreshControls(idname);
+            var container = that.refreshControls(idname);
+            that.layers[idname].layerObject.setup(that.layers[idname].data, container);
+            if(!that.isLayerActive(idname)){
+                that.layers[idname].layerObject.deactivate();
+            } else {
+                that.layers[idname].layerObject.activate();
+                jQuery('#control-'+idname).addClass("activeLayer");
+            }
         };
     
         that.mapClick = function(overlay, latlng) {

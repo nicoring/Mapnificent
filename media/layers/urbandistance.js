@@ -286,6 +286,8 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             }
         }
         
+        var timeoutTime = 500;
+        
         var travelFromStation = function(stationIndex){
             if(stationIndex < 0){
                 if(colored){
@@ -302,7 +304,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                     calculateTimes(index, stationId, minutes, null);
                 }
                 
-                window.setTimeout(travelFromStation(--stationIndex), 1);
+                window.setTimeout(travelFromStation(--stationIndex), timeoutTime);
             };
         };
         var k = nextStations.length - 1;
