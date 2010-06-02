@@ -71,7 +71,7 @@ var Mapnificent = (function(useroptions){
             that.env.heightInKm = that.getDistanceInKm(that.env.northwest, that.env.southwest);
             that.env.blockCountX = Math.ceil(that.env.widthInKm / that.env.blockSize);
             that.env.blockCountY = Math.ceil(that.env.heightInKm / that.env.blockSize);
-            jQuery("#"+that.mapID).height(jQuery(window).height()-jQuery("#controls").height());
+            jQuery("#"+that.mapID).height(jQuery(window).height());
             that.map = new google.maps.Map2(document.getElementById(that.mapID), that.env.getGMapOptions());
             that.map.setCenter(new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng), that.env.mapStartZoom);
             //that.map.enableScrollWheelZoom();
@@ -260,7 +260,7 @@ var Mapnificent = (function(useroptions){
         };
         
         that.resize = function(){
-            jQuery("#"+that.mapID).height(jQuery(window).height()-(jQuery("#controls").outerHeight()));
+            jQuery("#"+that.mapID).height(jQuery(window).height());
             if(that.map){
                 that.map.checkResize();
                 that.mapSize = that.map.getSize();

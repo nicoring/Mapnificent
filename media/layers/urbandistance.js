@@ -12,6 +12,8 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     that.tabid = "mobility";
     that.idname = "urbanDistance";
     var LOCK = false
+        , callbacksForIndex = {}
+        , webworker
         , minutesPerKm = 13
         , colorMaxAcceptableTime = 60
         , colorBaseGradientColor = 120
@@ -159,7 +161,6 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             mapnificent.hideMessage();
             startPositions[index].ready = true;
             mapnificent.trigger("redraw");
-            
         };
     };
     
@@ -244,6 +245,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         stations = dataobjs[0];
         lines = dataobjs[1];
         blockGrid = [];
+        webworker = new Worker("media/layers/urbandistanceworker.js");
+        webworker.onmessage = workerMessage;
+        webworker.onerror = workerError;
         for(var i=0;i<mapnificent.env.blockCountX;i+=1){
             blockGrid.push([]);
             for(var j=0;j<mapnificent.env.blockCountX;j+=1){
@@ -257,22 +261,25 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                     stationList.push(stationId);
                     var indizes = mapnificent.getBlockIndizesForPosition(stations[stationId].pos);
                     blockGrid[indizes[0]][indizes[1]].push(stationId);
-                } else {
-                    }
+                }
             }
         }
         appendControlHtmlTo(controlcontainer);
         addPosition(defaultStartAtPosition);
     };
+    
     that.calculate = function(index, clb){
         var startTimer = new Date().getTime();
+        callbacksForIndex[index] = clb;
         stationMap[index] = {};
         colorSorted[index] = null;
-        var startPos = startPositions[index].latlng;
-        var numberOfClosest = 3;
-        var minDistances=[], minStations=[];
-        var i = 0;
-        var nextStations = [];
+        var startPos = startPositions[index].latlng
+            , numberOfClosest = 3
+            , minDistances=[]
+            , minStations=[]
+            , i = 0
+            , nextStations = []
+            , distances = [];
         while(i<=1 || nextStations.length == 0){
             var indizes = mapnificent.getBlockIndizesForPositionByRadius(startPos, i);
             for(var j=0;j<indizes.length;j+=1){
@@ -285,97 +292,29 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                 i += 1;
             }
         }
-        
-        var timeoutTime = 500;
-        
-        var travelFromStation = function(stationIndex){
-            if(stationIndex < 0){
-                if(colored){
-                    sortByMinutes(index);
-                }
-                console.log("Time: ", new Date().getTime() - startTimer);
-                return clb;
-            }
-            var stationId = nextStations[0];
-            return function(){
-                var distance = mapnificent.getDistanceInKm(startPos, stations[stationId].pos);
-                var minutes = distance * minutesPerKm;
-                if (minutes <= maxWalkTime){
-                    calculateTimes(index, stationId, minutes, null);
-                }
-                
-                window.setTimeout(travelFromStation(--stationIndex), timeoutTime);
-            };
-        };
-        var k = nextStations.length - 1;
-        window.setTimeout(travelFromStation(k), 1);
+        for(var k=0;k<nextStations.length;k++){
+            distances.push(mapnificent.getDistanceInKm(startPos, stations[nextStations[k]].pos));
+        }
+        console.log("Starting WebWorker...");
+        webworker.postMessage({"fromStations": nextStations, "blockGrid": blockGrid, "position": startPos, 
+            "stations": stations, "index": index, "lines": lines, "distances": distances,
+            "maxWalkTime": maxWalkTime, "minutesPerKm": minutesPerKm});
     };
     
-    var sortByMinutes = function(index){
-        colorSorted[index] = stationList.slice();
-        colorSorted[index].sort(function(a,b){
-            if(typeof(stationMap[index][a]) === "undefined"){
-                var x = Infinity;
-            } else {
-                var x = stationMap[index][a].minutes;
+    var workerMessage = function(event){
+        if(typeof(stationMap[event.data.index]) !== "undefined"){
+            if(event.data.status == "done"){
+                stationMap[event.data.index] = event.data.stationMap;
+                callbacksForIndex[event.data.index]();
+            } else if (event.data.status == "working"){
+                console.log("Working... "+event.data.at+"/"+event.data.of);
             }
-            if(typeof(stationMap[index][b]) === "undefined"){
-                var y = Infinity;
-            } else {
-                var y = stationMap[index][b].minutes;
-            }            
-            return ((x < y) ? -1 : ((x > y) ? 1 : 0));
-        });
+        }
     };
     
-    var calculateTimes = function(index, stationId, minutes, line, stay){
-        var station = stations[stationId];
-        if (line != null && typeof(stationMap[index][stationId]) !== "undefined" && 
-                stationMap[index][stationId].minutes <= minutes){
-            /*  Same line look-ahead:
-                I got here faster before, but maybe switching lines caused a delay for
-                the next station on this line, so I'll be faster at the next station even
-                though it took me longer to get to the current one. Let's check it out!
-            */
-            for(var i=0;i<station.reachableStations.length;i++){
-                if(station.reachableStations[i].line == line){
-                    // a station on the same line
-                    var nextMinutes = minutes + station.reachableStations[i].minutes + stay;
-                    if (typeof(stationMap[index][station.reachableStations[i].stationId]) === "undefined" ||
-                            stationMap[index][station.reachableStations[i].stationId].minutes > nextMinutes){
-                        // Yeah, I can get to the next station on this line faster than before, let's go there!
-                        calculateTimes(index, station.reachableStations[i].stationId, nextMinutes, 
-                                station.reachableStations[i].line, station.reachableStations[i]["stay"]);
-                    }
-                }
-            }
-            return;
-        }
-        stationMap[index][stationId] = {"minutes": minutes};
-        for(var i=0;i<station.reachableStations.length;i++){
-            if (line == null){
-                // My first station! I don't have to wait!
-                var nextMinutes = minutes + station.reachableStations[i].minutes;
-            } else if(station.reachableStations[i].line == line){
-                // Same line! The current transport may pause here for some time
-                var nextMinutes = minutes + station.reachableStations[i].minutes + stay;
-            } else {
-                // Switch line! Guess the wait time for the next line
-                var nextMinutes = minutes + getWaitTime(stationId, line, station.reachableStations[i].stationId, 
-                        station.reachableStations[i].line) + station.reachableStations[i].minutes;
-            }
-            calculateTimes(index, station.reachableStations[i].stationId, nextMinutes, 
-                    station.reachableStations[i].line, station.reachableStations[i]["stay"]);
-        }
-        return true;
-    };
-    
-    
-    var getWaitTime = function(station1, line1, station2, line2){
-        if(typeof lines[line2] !== "undefined"){
-            return lines[line2].interval/2;
-        }
-        return 6; // Well, this is a hack
+    var workerError = function(error){
+        console.error("Worker: "+error.message);
+        throw error;
     };
     
     var getColorFor = function(min){
@@ -474,7 +413,23 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         if(intersection){
             fillGreyArea(ctx);
         }
-        
+    };
+    
+    var sortByMinutes = function(index){
+        colorSorted[index] = stationList.slice();
+        colorSorted[index].sort(function(a,b){
+            if(typeof(stationMap[index][a]) === "undefined"){
+                var x = Infinity;
+            } else {
+                var x = stationMap[index][a].minutes;
+            }
+            if(typeof(stationMap[index][b]) === "undefined"){
+                var y = Infinity;
+            } else {
+                var y = stationMap[index][b].minutes;
+            }            
+            return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+        });
     };
     
     var redrawColored = function(ctx){

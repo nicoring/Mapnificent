@@ -63,8 +63,6 @@
         </section>
         <div id="map"></div>
         <div id="controls">
-            <ul id="controls-tabnavigation">
-            </ul>
         </div>
         <div id="loading" class="shortoverlay" style="display:none">Calculating...</div>
         <div id="message" class="shortoverlay" style="display:none"></div>
@@ -77,7 +75,7 @@
             }
             var MAPNIFICENT_LAYER = {};
             var MAPNIFICENT_LAYERDATA = {};
-            var mapnificent = new Mapnificent();
+            var mapnificent = Mapnificent();
 
             init_mapnificent = function(){
                 mapnificent.initMap("map");
@@ -85,13 +83,7 @@
                     mapnificent.showMessage("Your browser seems to suck, no canvas support! I can't work that way...");
                     return;
                 }
-                mapnificent.addTab("mobility", "Public Transport");
-                // mapnificent.addTab("economy", "Recovery Package", false);
-                // mapnificent.addTab("areaReputation", "Location", false);
-                // mapnificent.addTab("webmapservice", "Web Map Service", false);
-//                mapnificent.addTab("estate", "Estate", false);
                 mapnificent.setup(MAPNIFICENT_LAYER, MAPNIFICENT_LAYERDATA);
-                mapnificent.addLiveLoader();
                 mapnificent.redraw();
                 jQuery(".toggle").click(function(e){
                     e.preventDefault();
