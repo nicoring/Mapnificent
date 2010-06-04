@@ -8,11 +8,124 @@
 */
 
 var Mapnificent = (function(useroptions){
+    var CanvasOverlay = (function() {
+        /* Most of this is from:
+        http://code.google.com/apis/maps/documentation/javascript/overlays.html#CustomOverlays
+        some of it is from: http://econym.org.uk/gmap/elabel.htm
+        */
+        function CanvasOverlay(point, canvasID, clb, map) {
+            this.point = point;
+            this.addclb = clb;
+            this.canvasID = canvasID;
+            // Optional parameters
+            this.hidden = false;
+
+            // Now initialize all properties.
+            this.map_ = map;
+
+            // We define a property to hold the image's
+            // div. We'll actually create this div
+            // upon receipt of the add() method so we'll
+            // leave it null for now.
+            this.div_ = null;
+
+            // Explicitly call setMap() on this overlay
+            this.setMap(map);
+        }
+
+        CanvasOverlay.prototype = new google.maps.OverlayView();
+        CanvasOverlay.prototype.onAdd = function() {
+
+          // Note: an overlay's receipt of onAdd() indicates that
+          // the map's panes are now available for attaching
+          // the overlay to the map via the DOM.
+
+          // Create the DIV and set some basic attributes.
+          var div = document.createElement('DIV');
+          div.style.border = "none";
+          div.style.borderWidth = "0px";
+          div.style.position = "absolute";
+          var cnvs = document.createElement("canvas");
+          cnvs.id = this.canvasID;
+          cnvs.width=20;
+          cnvs.height=20;
+
+          div.appendChild(cnvs);
+
+          // Set the overlay's div_ property to this DIV
+          this.div_ = div;
+
+          // We add an overlay to a map via one of the map's panes.
+          // We'll add this overlay to the overlayImage pane.
+          var panes = this.getPanes();
+          panes.mapPane.appendChild(div);
+          
+          this.projection = this.getProjection();
+          this.addclb();
+        };
+        CanvasOverlay.prototype.draw = function() {
+            var p = this.projection.fromLatLngToDivPixel(this.point);
+            var h = parseInt(this.div_.clientHeight);
+            this.div_.style.left = (p.x) + "px";
+            this.div_.style.top = (p.y - h) + "px";
+        };
+        
+        CanvasOverlay.prototype.fromLatLngToDivPixel = function(point){
+            return this.projection.fromLatLngToDivPixel(point);
+        };
+        
+        CanvasOverlay.prototype.fromDivPixelToLatLng = function(point){
+            return this.projection.fromDivPixelToLatLng(point);
+        };
+        
+        CanvasOverlay.prototype.setPoint = function(point) {
+          this.point = point;
+          this.draw();
+        };
+        CanvasOverlay.prototype.getPoint = function() {
+          return this.point;
+        };
+        CanvasOverlay.prototype.onRemove = function() {
+          this.div_.parentNode.removeChild(this.div_);
+          this.div_ = null;
+        };
+        CanvasOverlay.prototype.hide = function() {
+          if (this.div_) {
+            this.div_.style.visibility = "hidden";
+          }
+        };
+
+        CanvasOverlay.prototype.show = function() {
+          if (this.div_) {
+            this.div_.style.visibility = "visible";
+          }
+        };
+
+        CanvasOverlay.prototype.toggle = function() {
+          if (this.div_) {
+            if (this.div_.style.visibility == "hidden") {
+              this.show();
+            } else {
+              this.hide();
+            }
+          }
+        };
+
+        CanvasOverlay.prototype.toggleDOM = function() {
+          if (this.getMap()) {
+            this.setMap(null);
+          } else {
+            this.setMap(this.map_);
+          }
+        };
+        return CanvasOverlay;
+    }());
+    
     return function(){
         var that = {};
         var options = useroptions || {};
         var defaults = {};
-        defaults.mapStartZoom = 10;
+        defaults.mapStartZoom = 11;
         defaults.mapStartCenter = {"lat": 52.51037058766109, "lng": 13.333282470703125};
         defaults.northwest = {"lat":52.754364, "lng":12.882953};
         defaults.southeast = {"lat":52.29693, "lng":13.908883};
@@ -72,53 +185,56 @@ var Mapnificent = (function(useroptions){
             that.env.blockCountX = Math.ceil(that.env.widthInKm / that.env.blockSize);
             that.env.blockCountY = Math.ceil(that.env.heightInKm / that.env.blockSize);
             jQuery("#"+that.mapID).height(jQuery(window).height());
-            that.map = new google.maps.Map2(document.getElementById(that.mapID), that.env.getGMapOptions());
-            that.map.setCenter(new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng), that.env.mapStartZoom);
+            that.env.getGMapOptions();
+            var myOptions = {
+              zoom: that.env.mapStartZoom
+              , center: new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng)
+              , mapTypeId: google.maps.MapTypeId.ROADMAP
+            };
+            that.map = new google.maps.Map(document.getElementById(that.mapID), myOptions);
+            // that.map.setCenter(new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng), that.env.mapStartZoom);
             //that.map.enableScrollWheelZoom();
-            that.map.addControl(new GLargeMapControl());
-            that.map.addControl(new GMapTypeControl());
+            // that.map.addControl(new GLargeMapControl());
+            // that.map.addControl(new GMapTypeControl());
             if(that.env.getGMapOptions()["googleBarOptions"] !== "undefined"){
-                that.map.enableGoogleBar();            
+                // that.map.enableGoogleBar();            
             }
-            that.mapSize = that.map.getSize();
+            that.mapSize = {"width": jQuery(that.map.getDiv()).width(), "height": jQuery(that.map.getDiv()).height()};
             that.heightCacheOffset = (that.mapSize.height*(that.env.heightCacheFactor - 1))/2;
             that.widthCacheOffset = (that.mapSize.width*(that.env.widthCacheFactor - 1))/2;
-            that.mapBounds = that.map.getBounds();
-            that.mapBoundsXY = that.map.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
-            that.geocoder = new google.maps.ClientGeocoder();
+            that.geocoder = new google.maps.Geocoder();
             that.canvas_id = "mapnificent-canvas";
             while(document.getElementById(that.canvas_id) !== null){
                 that.canvas_id += "0"; // Desperate move here
             }
-            var cnvs = document.createElement("canvas");
-            cnvs.id = that.canvas_id;
-            cnvs.width=20;
-            cnvs.height=20;
-            that.elabel = new ELabel(that.env.Gsouthwest, cnvs);
-            that.map.addOverlay(that.elabel);
-            that.canvas = document.getElementById(that.canvas_id);
-            if(typeof(G_vmlCanvasManager) !== "undefined"){
-                that.env.ie = true;
-                alert("Your browser might or might not work. Rather use a better one.");
-                G_vmlCanvasManager.initElement(that.canvas);
-            }
-            if(typeof(that.canvas.getContext) === "undefined"){
-                /* Uh, oh, no canvas ahead!! Crash! */
-              that.ctx = null;
-              return;
-            }
-            that.ctx = that.canvas.getContext("2d");
-            that.checkCompositing();
-            GEvent.addListener(that.map, "zoomend", function(oldLevel, newLevel){
+            var onaddcallback = function(){
+                that.canvas = document.getElementById(that.canvas_id);
+                if(typeof(G_vmlCanvasManager) !== "undefined"){
+                    that.env.ie = true;
+                    alert("Your browser might or might not work. Rather use a better one.");
+                    G_vmlCanvasManager.initElement(that.canvas);
+                }
+                if(typeof(that.canvas.getContext) === "undefined"){
+                    /* Uh, oh, no canvas ahead!! Crash! */
+                    mapnificent.showMessage("Your browser seems to suck, no canvas support! I can't work that way...");
+                    return;
+                }
+                that.ctx = that.canvas.getContext("2d");
+                that.checkCompositing();
+                that.setScale();
+                that.mapBounds = that.map.getBounds();
+                that.mapBoundsXY = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
+            };
+            that.canvasoverlay = new CanvasOverlay(that.env.Gsouthwest, that.canvas_id, onaddcallback, that.map);
+            google.maps.event.addListener(that.map, "zoom_changed", function(oldLevel, newLevel){
                 that.setScale();
                 that.trigger("redraw");
             });
-            GEvent.addListener(that.map, "moveend", function(){
+            google.maps.event.addListener(that.map, "dragend", function(){
                 if(that.moveMapPosition()){
                     that.trigger("redraw");
                 }
             });
-            that.setScale();
         };
     
         that.checkCompositing = function(){
@@ -147,16 +263,16 @@ var Mapnificent = (function(useroptions){
         };
     
         that.setScale = function(){
-            that.env.southeastxy = that.map.fromLatLngToDivPixel(that.env.Gsoutheast);
-            that.env.northwestxy = that.map.fromLatLngToDivPixel(that.env.Gnorthwest);
-            that.env.southwestxy = that.map.fromLatLngToDivPixel(that.env.Gsouthwest);
-            that.env.northeastxy = that.map.fromLatLngToDivPixel(that.env.Gnortheast);
-            that.elabelxy = that.map.fromLatLngToDivPixel(that.elabel.getPoint());
+            that.env.southeastxy = that.canvasoverlay.fromLatLngToDivPixel(that.env.Gsoutheast);
+            that.env.northwestxy = that.canvasoverlay.fromLatLngToDivPixel(that.env.Gnorthwest);
+            that.env.southwestxy = that.canvasoverlay.fromLatLngToDivPixel(that.env.Gsouthwest);
+            that.env.northeastxy = that.canvasoverlay.fromLatLngToDivPixel(that.env.Gnortheast);
+            that.canvasoverlayxy = that.canvasoverlay.fromLatLngToDivPixel(that.canvasoverlay.getPoint());
             that.env.map_width = Math.abs(that.env.southwestxy.x - that.env.northeastxy.x);
             that.env.map_height = Math.abs(that.env.southwestxy.y - that.env.northeastxy.y);
             that.env.pixelPerKm = that.env.map_width/that.env.widthInKm;
             that.mapBounds = that.map.getBounds();
-            that.mapBoundsXY = that.map.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
+            that.mapBoundsXY = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
         
             var needPositionSet = false;
             var oldOffsetActive = that.offsetActive;
@@ -179,26 +295,25 @@ var Mapnificent = (function(useroptions){
                 that.setMapPosition();
             } 
             if(oldOffsetActive && !that.offsetActive){
-                that.elabel.setPoint(that.env.Gsouthwest);
-                that.elabelxy = that.map.fromLatLngToDivPixel(that.elabel.getPoint());
+                that.canvasoverlay.setPoint(that.env.Gsouthwest);
+                that.canvasoverlayxy = that.canvasoverlay.fromLatLngToDivPixel(that.canvasoverlay.getPoint());
             }
             that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
-            that.elabel.redraw(true);
         };
     
         that.moveMapPosition = function(){
             if(!that.offsetActive){return false;}
             that.mapBounds = that.map.getBounds();
-            that.mapBoundsXY = that.map.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
-            var boundnexy = that.map.fromLatLngToDivPixel(that.mapBounds.getNorthEast());
+            that.mapBoundsXY = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
+            var boundnexy = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getNorthEast());
             var need = false;
-            if((that.mapBoundsXY.x-that.widthCacheOffset*(1/3)) < that.elabelxy.x){
+            if((that.mapBoundsXY.x-that.widthCacheOffset*(1/3)) < that.canvasoverlayxy.x){
                 need = true;
-            } else if((boundnexy.x+that.widthCacheOffset*(1/3)) > that.elabelxy.x+that.canvas.width){
+            } else if((boundnexy.x+that.widthCacheOffset*(1/3)) > that.canvasoverlayxy.x+that.canvas.width){
                 need = true;
-            } else if((that.mapBoundsXY.y+that.heightCacheOffset*(1/3)) > that.elabelxy.y){
+            } else if((that.mapBoundsXY.y+that.heightCacheOffset*(1/3)) > that.canvasoverlayxy.y){
                 need = true;
-            } else if((boundnexy.y - that.heightCacheOffset*(1/3)) < that.elabelxy.y - that.canvas.height){
+            } else if((boundnexy.y - that.heightCacheOffset*(1/3)) < that.canvasoverlayxy.y - that.canvas.height){
                 need = true;
             }
             if(need){
@@ -211,22 +326,22 @@ var Mapnificent = (function(useroptions){
         /* Repositions the map around the current view port */
         that.setMapPosition = function(){
             if(!that.offsetActive){return;}
-            var p = that.elabel.getPoint();
+            var p = that.canvasoverlay.getPoint();
             var pxnpm = new google.maps.Point(that.mapBoundsXY.x, that.mapBoundsXY.y+that.heightCacheOffset);
-            var geopxnpm = that.map.fromDivPixelToLatLng(pxnpm);
+            var geopxnpm = that.canvasoverlay.fromDivPixelToLatLng(pxnpm);
             var nlat = geopxnpm.lat();
             nlat = Math.min(nlat, that.env.northwest.lat);
             nlat = Math.max(nlat, that.env.southeast.lat);
             var p = new google.maps.LatLng(nlat, p.lng());
-            that.elabel.setPoint(p);        
+            that.canvasoverlay.setPoint(p);        
             var pxnpm = new google.maps.Point(that.mapBoundsXY.x-that.widthCacheOffset, that.mapBoundsXY.y);
-            var geopxnpm = that.map.fromDivPixelToLatLng(pxnpm);
+            var geopxnpm = that.canvasoverlay.fromDivPixelToLatLng(pxnpm);
             var nlng = geopxnpm.lng();
             nlng = Math.max(nlng, that.env.southwest.lng);
             nlng = Math.min(nlng, that.env.southeast.lng);
             var mapbottomleftgeo = new google.maps.LatLng(p.lat(), nlng);
-            that.elabel.setPoint(mapbottomleftgeo);
-            that.elabelxy = that.map.fromLatLngToDivPixel(that.elabel.getPoint());
+            that.canvasoverlay.setPoint(mapbottomleftgeo);
+            that.canvasoverlayxy = that.canvasoverlay.fromLatLngToDivPixel(that.canvasoverlay.getPoint());
         };
     
         that.trigger = function(ev, paramObj) {
@@ -262,8 +377,8 @@ var Mapnificent = (function(useroptions){
         that.resize = function(){
             jQuery("#"+that.mapID).height(jQuery(window).height());
             if(that.map){
-                that.map.checkResize();
-                that.mapSize = that.map.getSize();
+                google.maps.event.trigger(that.map, "resize");
+                that.mapSize = {"width": jQuery(that.map.getDiv()).width(), "height": jQuery(that.map.getDiv()).height()};
                 that.heightCacheOffset = (that.mapSize.height*(that.env.heightCacheFactor - 1))/2;
                 that.widthCacheOffset = (that.mapSize.width*(that.env.widthCacheFactor - 1))/2;
                 that.moveMapPosition();
@@ -347,9 +462,9 @@ var Mapnificent = (function(useroptions){
             return [indexX, indexY];
         };
         that.getCanvasXY = function(pos) {
-            var xy = that.map.fromLatLngToDivPixel(new google.maps.LatLng(pos.lat, pos.lng));
-            var x = xy.x - (that.elabelxy.x);
-            var y = xy.y - (that.elabelxy.y-that.canvas.height);
+            var xy = that.canvasoverlay.fromLatLngToDivPixel(new google.maps.LatLng(pos.lat, pos.lng));
+            var x = xy.x - (that.canvasoverlayxy.x);
+            var y = xy.y - (that.canvasoverlayxy.y-that.canvas.height);
             return {"x" : x, "y": y};
         };
         that.redraw = function(){
@@ -368,6 +483,7 @@ var Mapnificent = (function(useroptions){
                     actuallyDrawn++;
                 }
             }
+            that.canvasoverlay.draw();
         };
             
         that.getDistanceInKm = function(pos1, pos2) {
@@ -384,7 +500,7 @@ var Mapnificent = (function(useroptions){
             that.resize();
             that.bind("redraw", that.redraw);
             var clicktimeout = null, lastclick = null;
-            that.setPositionListener = GEvent.bind(that.map, "click", that, function(overlay, latlng){
+            that.setPositionListener = google.maps.event.addListener(that.map, "click", function(overlay, latlng){
                 if(lastclick != null && lastclick+250 >= new Date().getTime() && clicktimeout !== null){
                     window.clearTimeout(clicktimeout);
                     return;
@@ -429,26 +545,28 @@ var Mapnificent = (function(useroptions){
     
         that.createMarker = function(pos, options) {
             options = options || {};
-            var marker = new google.maps.Marker(new google.maps.LatLng(pos.lat, pos.lng), options);
-            that.map.addOverlay(marker);
+            options.position = new google.maps.LatLng(pos.lat, pos.lng);
+            options.map = that.map;
+            options.title = "";
+            var marker = new google.maps.Marker(options);
             return marker;
         };
         
         that.addEventOnMarker = function(ev, marker, func) {
-            GEvent.addListener(marker, ev, func);
+            google.maps.event.addListener(marker, ev, func);
         };
         
         that.removeMarker = function(marker){
-            that.map.removeOverlay(marker);
+            marker.setMap(null);
         };
     
         that.getAddressForPoint = function(latlng, userCallback) {
-            var callback = function(response) {
-                if (response && response.Status.code == 200) {
-                    userCallback(response.Placemark[0].address);
+            var callback = function(results, status) {
+                if (status == google.maps.GeocoderStatus.OK) {
+                    userCallback(results[0].formatted_address);
                 }
             };
-            that.geocoder.getLocations(new google.maps.LatLng(latlng.lat, latlng.lng), callback);
+            that.geocoder.geocode({'latLng': new google.maps.LatLng(latlng.lat, latlng.lng)}, callback);
         };
     
         that.calculateLayer = function(idname) {

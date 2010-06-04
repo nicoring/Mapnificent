@@ -1,8 +1,12 @@
 var calculate = (function(){
     
-    var stationMap, stations, lines;
+    var stationMap, stations, lines, count, index;
 
     var calculateTimes = function(stationId, minutes, line, stay){
+        count += 1;
+        if (count % 100000 == 0){
+            postMessage({"status": "working", "at": count, "index": index});
+        }
         var station = stations[stationId];
         if (line != null && typeof(stationMap[stationId]) !== "undefined" && 
                 stationMap[stationId].minutes <= minutes){
@@ -54,11 +58,12 @@ var calculate = (function(){
     
     return function(event){
         stationMap = {};
+        count = 0;
         stations = event.data.stations;
         lines = event.data.lines;
         startPos = event.data.position;
-        var index = event.data.index
-            , fromStations = event.data.fromStations
+        index = event.data.index;
+        var fromStations = event.data.fromStations
             , distances = event.data.distances
             , maxWalkTime = event.data.maxWalkTime
             , minutesPerKm = event.data.minutesPerKm;
@@ -70,7 +75,8 @@ var calculate = (function(){
                 calculateTimes(stationId, minutes, null);
             }
         }
-        postMessage({"status": "done", "stationMap": stationMap, "index": index})
+        postMessage({"status": "working", "at": count, "index": index});
+        postMessage({"status": "done", "stationMap": stationMap, "index": index});
     };
 }());
 

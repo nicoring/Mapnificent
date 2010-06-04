@@ -137,14 +137,14 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     var highlightMarker = function(index){
         return function(){
             jQuery('#'+that.idname+'-'+index).css('outline', '1px #00BB0B solid');
-            startPositions[index].marker.setImage("http://gmaps-samples.googlecode.com/svn/trunk/markers/green/blank.png");
+            startPositions[index].marker.setIcon("http://gmaps-samples.googlecode.com/svn/trunk/markers/green/blank.png");
         };
     };
     
     var unhighlightMarker = function(index){
         return function(){
             jQuery('#'+that.idname+'-'+index).css('outline', '0px');
-            startPositions[index].marker.setImage("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
+            startPositions[index].marker.setIcon("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
         };
     };
     
@@ -155,12 +155,28 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         }; 
     };
     
+    var paddZeros = function(number, zerocount){
+        number = number.toString();
+        var n = number.length;
+        for (var k=0; k<(zerocount-n);k++){
+            number = "0"+number;
+        }
+        return number;
+    };
+    
     var afterCalculate = function(index){
         return function(){
             LOCK=false;
             mapnificent.hideMessage();
             startPositions[index].ready = true;
             mapnificent.trigger("redraw");
+            // var o = "";
+            // var i=0;
+            // for(var key in stationMap[index]){
+            //     o += "#RN "+paddZeros(i, 6)+" #SN "+key+" #DN 9003201 #RD 07.06.10 #RT 0900 #FW #RP 11111111111001 #RO NNNN\n";
+            //     i += 1;
+            // }
+            // console.log(o)
         };
     };
     
@@ -175,16 +191,16 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         positionCounter += 1;
         var index = positionCounter;
         var marker = mapnificent.createMarker(latlng, {"draggable":true});
-        marker.setImage("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
+        marker.setIcon("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
         startPositions[index] = {"marker": marker, "latlng": latlng, "minutes": 15, "address": "Loading...", "LOCK": false, "ready": false};
         mapnificent.getAddressForPoint(latlng, setAddressForIndex(index));
         mapnificent.addEventOnMarker("click", marker, openPositionWindow(index));
         mapnificent.addEventOnMarker("mouseover", marker, highlightMarker(index));
         mapnificent.addEventOnMarker("mouseout", marker, unhighlightMarker(index));
         mapnificent.addEventOnMarker("dragstart", marker, function(){setAddressForIndex(index)("");});
-        mapnificent.addEventOnMarker("dragend", marker, function(ll){
+        mapnificent.addEventOnMarker("dragend", marker, function(mev){
             startPositions[index].ready = false;
-            startPositions[index].latlng = {"lat": ll.lat(), "lng": ll.lng()};
+            startPositions[index].latlng = {"lat": mev.latLng.lat(), "lng": mev.latLng.lng()};
             mapnificent.showMessage("Calculating...");
             that.calculate(index, afterCalculate(index));
             mapnificent.getAddressForPoint(startPositions[index].latlng, setAddressForIndex(index));
@@ -204,14 +220,14 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     that.activate = function(){
         for(var index in startPositions){
             jQuery("#"+that.idname+'-'+index+'-slider').slider("enable");
-            startPositions[index].marker.show();
+            startPositions[index].marker.setVisible(true);
         }
         mapnificent.bind("mapClick", addPosition);
     };
     that.deactivate = function(){
         for(var index in startPositions){
             jQuery("#"+that.idname+'-'+index+'-slider').slider("disable");
-            startPositions[index].marker.hide();
+            startPositions[index].marker.setVisible(false);
         }
         mapnificent.unbind("mapClick", that.addPosition);
     };
@@ -269,7 +285,6 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     };
     
     that.calculate = function(index, clb){
-        var startTimer = new Date().getTime();
         callbacksForIndex[index] = clb;
         stationMap[index] = {};
         colorSorted[index] = null;
@@ -306,8 +321,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             if(event.data.status == "done"){
                 stationMap[event.data.index] = event.data.stationMap;
                 callbacksForIndex[event.data.index]();
+                console.log("Done", event.data.stationMap);
             } else if (event.data.status == "working"){
-                console.log("Working... "+event.data.at+"/"+event.data.of);
+                console.log("Working... "+event.data.at);
             }
         }
     };
