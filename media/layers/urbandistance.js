@@ -33,6 +33,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , colorCache = {}
         , colorSorted = {};
         
+        
     var updateGoby = function(e){
         var newMaxWalkTime, newMinutesPerKm;
         try{
@@ -223,7 +224,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         mapnificent.addEventOnMarker("dragend", marker, function(mev){
             startPositions[index].ready = false;
             startPositions[index].latlng = {"lat": mev.latLng.lat(), "lng": mev.latLng.lng()};
-            beforeCalculate(index)
+            beforeCalculate(index);
             that.calculate(index, afterCalculate(index));
             mapnificent.getAddressForPoint(startPositions[index].latlng, setAddressForIndex(index));
         });
