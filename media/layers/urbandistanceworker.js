@@ -8,7 +8,7 @@ var calculate = (function(){
             postMessage({"status": "working", "at": count, "index": index});
         }
         var station = stations[stationId];
-        if (line != null && typeof(stationMap[stationId]) !== "undefined" && 
+        if (line !== -1 && typeof(stationMap[stationId]) !== "undefined" && 
                 stationMap[stationId].minutes <= minutes){
             /*  Same line look-ahead:
                 I got here faster before, but maybe switching lines caused a delay for
@@ -16,9 +16,9 @@ var calculate = (function(){
                 though it took me longer to get to the current one. Let's check it out!
             */
             for(var i=0;i<station.reachableStations.length;i++){
-                if(station.reachableStations[i].line == line){
+                if(station.reachableStations[i].line === line){
                     // a station on the same line
-                    var nextMinutes = minutes + station.reachableStations[i].minutes + stay;
+                    var nextMinutes = minutes + station.reachableStations[i].minutes + stay;                    
                     if (typeof(stationMap[station.reachableStations[i].stationId]) === "undefined" ||
                             stationMap[station.reachableStations[i].stationId].minutes > nextMinutes){
                         // Yeah, I can get to the next station on this line faster than before, let's go there!
@@ -29,9 +29,12 @@ var calculate = (function(){
             }
             return;
         }
+        if(typeof(stationMap[stationId]) !== "undefined" && stationMap[stationId].minutes <= minutes){
+            return;
+        }
         stationMap[stationId] = {"minutes": minutes};
         for(var i=0;i<station.reachableStations.length;i++){
-            if (line == null){
+            if (line === -1){
                 // My first station! I don't have to wait!
                 var nextMinutes = minutes + station.reachableStations[i].minutes;
             } else if(station.reachableStations[i].line == line){
@@ -43,7 +46,7 @@ var calculate = (function(){
                         station.reachableStations[i].line) + station.reachableStations[i].minutes;
             }
             calculateTimes(station.reachableStations[i].stationId, nextMinutes, 
-                    station.reachableStations[i].line, station.reachableStations[i]["stay"]);
+                    station.reachableStations[i].line, station.reachableStations[i].stay);
         }
         return true;
     };
@@ -72,7 +75,7 @@ var calculate = (function(){
             var stationId = fromStations[k];
             var minutes = distances[k] * minutesPerKm;
             if (minutes <= maxWalkTime){
-                calculateTimes(stationId, minutes, null);
+                calculateTimes(stationId, minutes, -1, 0);
             }
         }
         postMessage({"status": "working", "at": count, "index": index});

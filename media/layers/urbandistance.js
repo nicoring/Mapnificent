@@ -111,16 +111,18 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     
     var openPositionWindow = function(index){
         return function(){
-            startPositions[index].marker.openInfoWindowHtml('<span class="'+that.idname+'-'+index+'-address">'+startPositions[index].address+'</span>');
+            startPositions[index].infowindow.setContent('<span class="'+that.idname+'-'+index+'-address">'+startPositions[index].address+'</span>');
+            startPositions[index].infowindow.open(mapnificent.map, startPositions[index].marker);
         };
     };
     
     var addPositionHtml = function(index){
         jQuery("#"+that.idname+'-positionContainer').append('<div id="'+that.idname+'-'+index+'">'+
-                 '<span>Area reachable in max. '+
+                 '<span id="'+that.idname+'-'+index+'-info" style="display:none">Area reachable in max. '+
                  '<strong id="'+that.idname+'-'+index+'-timeSpan"></strong> minutes <small>(no guarantee)</small></span>'+
                  '<input type="button" value="Remove" id="'+that.idname+'-'+index+'-remove"/>'+
-                '<div id="'+that.idname+'-'+index+'-slider" class="slider"></div>'+ // Use HTML5 range some day here
+                '<div style="display:none" id="'+that.idname+'-'+index+'-slider" class="slider"></div>'+ // Use HTML5 range some day here
+                '<div id="'+that.idname+'-'+index+'-progressbar" class="slider"></div>'+ // Use HTML5 progress some day here
                 '<div class="'+that.idname+'-'+index+'-address"></div>'+
                 '</div>');
         jQuery('#'+that.idname+'-'+index+'-slider').slider({ min: 0, max: 180,
@@ -128,6 +130,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                      stop: updateSlider(index), 
                      value: startPositions[index].minutes
                   });
+        jQuery('#'+that.idname+'-'+index+'-progressbar').progressbar({
+            value: 0
+        });
         jQuery("#"+that.idname+'-'+index+'-timeSpan').text(startPositions[index].minutes);
         jQuery("#"+that.idname+'-'+index+'-remove').click(function(){
             removePosition(index);
@@ -164,10 +169,27 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         return number;
     };
     
+    var updateCalculationProcess = function(index, count){
+        var estimatedMaxCalculateCalls = 5000000, percent = 0;
+        if (count>estimatedMaxCalculateCalls){
+            percent = 99;
+        } else {
+            percent = count / estimatedMaxCalculateCalls * 100;
+        }
+        jQuery('#'+that.idname+'-'+index+'-progressbar').progressbar( "value" , percent);
+    };
+    
+    var beforeCalculate = function(index){
+        jQuery('#'+that.idname+'-'+index+'-progressbar').show();
+        jQuery('#'+that.idname+'-'+index+'-info').hide();
+        jQuery('#'+that.idname+'-'+index+'-slider').hide();
+    };
+    
     var afterCalculate = function(index){
         return function(){
-            LOCK=false;
-            mapnificent.hideMessage();
+            jQuery('#'+that.idname+'-'+index+'-progressbar').hide();
+            jQuery('#'+that.idname+'-'+index+'-info').show();
+            jQuery('#'+that.idname+'-'+index+'-slider').show();
             startPositions[index].ready = true;
             mapnificent.trigger("redraw");
             // var o = "";
@@ -181,18 +203,18 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     };
     
     var addPosition = function(latlng){
-        if(LOCK){return;}
         if(!mapnificent.inRange({"lat":latlng.lat, "lng":latlng.lng})){
             mapnificent.showMessage("Out of area!");
             return;
         }
         mapnificent.showMessage("Calculating...");
-        LOCK = true;
         positionCounter += 1;
         var index = positionCounter;
         var marker = mapnificent.createMarker(latlng, {"draggable":true});
         marker.setIcon("http://gmaps-samples.googlecode.com/svn/trunk/markers/orange/blank.png");
-        startPositions[index] = {"marker": marker, "latlng": latlng, "minutes": 15, "address": "Loading...", "LOCK": false, "ready": false};
+        startPositions[index] = {"marker": marker, "latlng": latlng, "minutes": 15, 
+            "address": "Loading...", "LOCK": false, "ready": false,
+            "infowindow": new google.maps.InfoWindow({content: ""})};
         mapnificent.getAddressForPoint(latlng, setAddressForIndex(index));
         mapnificent.addEventOnMarker("click", marker, openPositionWindow(index));
         mapnificent.addEventOnMarker("mouseover", marker, highlightMarker(index));
@@ -201,7 +223,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         mapnificent.addEventOnMarker("dragend", marker, function(mev){
             startPositions[index].ready = false;
             startPositions[index].latlng = {"lat": mev.latLng.lat(), "lng": mev.latLng.lng()};
-            mapnificent.showMessage("Calculating...");
+            beforeCalculate(index)
             that.calculate(index, afterCalculate(index));
             mapnificent.getAddressForPoint(startPositions[index].latlng, setAddressForIndex(index));
         });
@@ -310,7 +332,6 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         for(var k=0;k<nextStations.length;k++){
             distances.push(mapnificent.getDistanceInKm(startPos, stations[nextStations[k]].pos));
         }
-        console.log("Starting WebWorker...");
         webworker.postMessage({"fromStations": nextStations, "blockGrid": blockGrid, "position": startPos, 
             "stations": stations, "index": index, "lines": lines, "distances": distances,
             "maxWalkTime": maxWalkTime, "minutesPerKm": minutesPerKm});
@@ -321,9 +342,8 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             if(event.data.status == "done"){
                 stationMap[event.data.index] = event.data.stationMap;
                 callbacksForIndex[event.data.index]();
-                console.log("Done", event.data.stationMap);
             } else if (event.data.status == "working"){
-                console.log("Working... "+event.data.at);
+                updateCalculationProcess(event.data.index, event.data.at);
             }
         }
     };

@@ -39,15 +39,6 @@ header, article, nav, section, aside, footer, canvas {
     margin:0;
     display:block;
 }
-#controls {
-    margin:15px 0 0 0;
-    height:220px;
-    width:100%;
-    border:0px;
-    overflow:auto;
-    overflow-x:hidden;
-    overflow-y:auto;
-}
 
 #controls-tabnavigation {
     position:absolute;
@@ -130,6 +121,32 @@ header, article, nav, section, aside, footer, canvas {
     display:block;
 }
 
+.controlsoverlay {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 500px;
+    background: white;
+    line-height: 1.4em;
+    border-left: 5px solid rgb(213,213,213);
+    border-top: 5px solid rgb(213,213,213);
+    -webkit-box-shadow : 3px 3px 5px rgba(0,0,0,0.3);
+    -moz-box-shadow : 3px 3px 5px rgba(0,0,0,0.3);
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    padding: 5px 0px 20px 10px;
+    max-height:400px;
+    overflow-y:auto;
+    display: block;
+    z-index: 20;
+    opacity:0.7;
+}
+.controlsoverlay:hover{
+    opacity:1;
+    -webkit-transition: opacity 0.25s ease-in;
+}
+
 .red {
     color:#b00;
 }
@@ -170,6 +187,7 @@ header, article, nav, section, aside, footer, canvas {
 
 .slider {
     width:40%;
+    height:30px;
     margin:2px 20px;
 }
 

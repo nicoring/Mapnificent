@@ -51,13 +51,13 @@
             <p><a href="http://twitter.com/mapnificent">@mapnificent on Twitter</a>.</p>
         </section>
         <div id="map"></div>
-        <div id="controls">
+        <div id="controls" class="controlsoverlay">
+            Test
         </div>
         <div id="loading" class="shortoverlay" style="display:none">Calculating...</div>
         <div id="message" class="shortoverlay" style="display:none"></div>
         <script src="media/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
-            $("#controls").tabs();
             if($.cookie("seenVideo") == null){
                 $("#video").show();
                 $.cookie("seenVideo", "yes", { path: '/', expires: 28 });

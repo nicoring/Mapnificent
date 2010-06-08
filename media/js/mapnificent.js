@@ -385,6 +385,8 @@ var Mapnificent = (function(useroptions){
             }
         };
         that.refreshControls = function(idname) {
+            return jQuery("#controls");
+            
             var chk = ' checked="checked"';
             if (!that.isTabActive(idname)){chk = "";}
             jQuery('#controls-'+that.layers[idname].tabid).append(jQuery('<div id="control-'+idname+'" class="control">'+
@@ -500,13 +502,13 @@ var Mapnificent = (function(useroptions){
             that.resize();
             that.bind("redraw", that.redraw);
             var clicktimeout = null, lastclick = null;
-            that.setPositionListener = google.maps.event.addListener(that.map, "click", function(overlay, latlng){
+            google.maps.event.addListener(that.map, "click", function(mev){
                 if(lastclick != null && lastclick+250 >= new Date().getTime() && clicktimeout !== null){
                     window.clearTimeout(clicktimeout);
                     return;
                 }
                 clicktimeout = window.setTimeout(function(){
-                    that.mapClick(overlay, latlng);
+                    that.mapClick(mev);
                     clicktimeout = null;
                 }, 250);
                 lastclick = new Date().getTime();
@@ -537,9 +539,9 @@ var Mapnificent = (function(useroptions){
             }
         };
     
-        that.mapClick = function(overlay, latlng) {
-           if (latlng) {
-               that.trigger("mapClick",{"lat":latlng.lat(), "lng":latlng.lng()});
+        that.mapClick = function(mev) {
+           if (mev.latLng) {
+               that.trigger("mapClick",{"lat": mev.latLng.lat(), "lng": mev.latLng.lng()});
            }
        };
     
