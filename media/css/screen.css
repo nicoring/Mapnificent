@@ -101,7 +101,7 @@ header, article, nav, section, aside, footer, canvas {
     top: 40%;
     margin-left: -242px;
     margin-top: -200px;
-    width: 450px;
+    width: 600px;
     background: white;
     line-height: 1.4em;
     border: 5px solid rgb(213,213,213);
@@ -138,9 +138,11 @@ header, article, nav, section, aside, footer, canvas {
     padding: 5px 0px 20px 10px;
     max-height:400px;
     overflow-y:auto;
+    overflow-x:hidden;
     display: block;
     z-index: 20;
     opacity:0.7;
+    -webkit-transition: opacity 1s ease-in;
 }
 .controlsoverlay:hover{
     opacity:1;
@@ -185,10 +187,37 @@ header, article, nav, section, aside, footer, canvas {
     cursor:pointer;
 }
 
-.slider {
-    width:40%;
-    height:30px;
-    margin:2px 20px;
+.ui-progressbar {
+    width:90%;
+    height:1.5em !important;
+}
+
+.ui-progressbar-value:after {
+    padding:10px 10px 10px 35%;
+    content:"Calculating...";
+}
+
+.ui-slider-horizontal {
+    width:90%;
+    height:1.5em !important;
+    cursor: pointer !important;
+}
+.ui-slider-handle {
+    height:1.6em !important;
+    cursor:move !important;
+}
+
+.ui-slider-horizontal:after {
+    padding:0 40%;
+    content:"Slide me";
+    color:rgb(0,187,11);
+    opacity:0.5;
+    -webkit-transition: opacity 1s ease-in;
+}
+
+.ui-slider-horizontal:hover:after {
+    opacity:1;
+    -webkit-transition: opacity 0.25s ease-in;
 }
 
 .activate-control {

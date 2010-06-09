@@ -129,8 +129,8 @@ var Mapnificent = (function(useroptions){
         defaults.mapStartCenter = {"lat": 52.51037058766109, "lng": 13.333282470703125};
         defaults.northwest = {"lat":52.754364, "lng":12.882953};
         defaults.southeast = {"lat":52.29693, "lng":13.908883};
-        defaults.heightCacheFactor = 5;
-        defaults.widthCacheFactor = 3;
+        defaults.heightCacheFactor = 3;
+        defaults.widthCacheFactor = 5;
         defaults.getGMapOptions = function(){
             return {"googleBarOptions": {"client": "pub-8009811934212849",
                     "channel": "6817437931",
@@ -224,11 +224,15 @@ var Mapnificent = (function(useroptions){
                 that.setScale();
                 that.mapBounds = that.map.getBounds();
                 that.mapBoundsXY = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
+                that.setup(MAPNIFICENT_LAYER, MAPNIFICENT_LAYERDATA);
             };
             that.canvasoverlay = new CanvasOverlay(that.env.Gsouthwest, that.canvas_id, onaddcallback, that.map);
             google.maps.event.addListener(that.map, "zoom_changed", function(oldLevel, newLevel){
-                that.setScale();
-                that.trigger("redraw");
+                that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
+                window.setTimeout(function(){
+                    that.setScale();
+                    that.trigger("redraw");
+                },500);
             });
             google.maps.event.addListener(that.map, "dragend", function(){
                 if(that.moveMapPosition()){

@@ -1,11 +1,12 @@
-var calculate = (function(){
+var urbandistanceWorker = (function(){
     
-    var stationMap, stations, lines, count, index;
+    var stationMap, stations, lines, count, index, estimatedMinuteLimit;
 
     var calculateTimes = function(stationId, minutes, line, stay){
+       if (minutes > estimatedMinuteLimit){ return; }
         count += 1;
         if (count % 100000 == 0){
-            postMessage({"status": "working", "at": count, "index": index});
+            postMessage({"status": "working", "at": count});
         }
         var station = stations[stationId];
         if (line !== -1 && typeof(stationMap[stationId]) !== "undefined" && 
@@ -65,7 +66,7 @@ var calculate = (function(){
         stations = event.data.stations;
         lines = event.data.lines;
         startPos = event.data.position;
-        index = event.data.index;
+        estimatedMinuteLimit = event.data.estimatedMinuteLimit;
         var fromStations = event.data.fromStations
             , distances = event.data.distances
             , maxWalkTime = event.data.maxWalkTime
@@ -78,13 +79,13 @@ var calculate = (function(){
                 calculateTimes(stationId, minutes, -1, 0);
             }
         }
-        postMessage({"status": "working", "at": count, "index": index});
-        postMessage({"status": "done", "stationMap": stationMap, "index": index});
+        postMessage({"status": "working", "at": count});
+        postMessage({"status": "done", "stationMap": stationMap});
     };
 }());
 
-if(typeof(MAPNIFICENT_LAYER)  !== "undefined" && typeof(MAPNIFICENT_LAYER.urbanDistance) !== "undefined"){
-    MAPNIFICENT_LAYER.urbanDistance.calculate = calculate;
+if(typeof(window) === "undefined"){
+    onmessage = urbandistanceWorker;
 } else {
-    onmessage = calculate;
+    WorkerFacade.add("media/layers/urbandistanceworker.js", urbandistanceWorker);
 }

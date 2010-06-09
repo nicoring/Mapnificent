@@ -30,8 +30,9 @@
         <section id="about" class="vcard contentoverlay">
             <a class="close toggle" href="#about">close</a>
             <h2 class="center">It's <img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h2>
-            <p>Mapnificent allows users to explore geographic data with interactive overlays.</p>
-            <p>It was inspired by <a href="http://mapumental.channel4.com">mapumental</a>, is currently in an early beta stage and only available for Berlin, Germany.</p>
+            <p>Mapnificent shows you the area you can reach with public transport in a given time.</p>
+            <p>It was inspired by <a href="http://mapumental.channel4.com">mapumental</a> and you can read the <a href="http://blog.stefanwehrmeyer.com/post/449810520/mapnificent">full story of Mapnificent on my blog</a>.</p>
+            <p>Mapnificent is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/3.0">cc-by-nc-sa</a> and <a href="http://github.com/stefanw/Mapnificent">the code is on GitHub</a>.</p>
             <h2>Impressum</h2>
             <p>Mapnificent was created by<br/>
             <a class="url" href="http://stefanwehrmeyer.com" title="Stefan Wehrmeyer">
@@ -42,18 +43,13 @@
                     <span class="street-address">Roonstr. 22</span><br/>
                     <span class="postal-code">12203</span> <span class="locality">Berlin</span>,
                     <span class="country-name">Germany</span>
-                </span>
-            </p>
-            <p>
+                </span><br/>
                 <a href="mailto:mail@mapnificent.de">mail@mapnificent.de</a>
             </p>
-            <p><a href="http://github.com/stefanw/Mapnificent">Mapnificent Code on GitHub</a></p>
-            <p><a href="http://twitter.com/mapnificent">@mapnificent on Twitter</a>.</p>
+            <p>Follow <a href="http://twitter.com/mapnificent">@mapnificent on Twitter</a>!</p>
         </section>
         <div id="map"></div>
-        <div id="controls" class="controlsoverlay">
-            Test
-        </div>
+        <div id="controls" class="controlsoverlay"></div>
         <div id="loading" class="shortoverlay" style="display:none">Calculating...</div>
         <div id="message" class="shortoverlay" style="display:none"></div>
         <script src="media/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
@@ -68,7 +64,6 @@
 
             $(document).ready(function(){
                 mapnificent.initMap("map");
-                mapnificent.setup(MAPNIFICENT_LAYER, MAPNIFICENT_LAYERDATA);
                 jQuery(".toggle").click(function(e){
                     e.preventDefault();
                     var obj = jQuery(jQuery(this).attr("href"));
