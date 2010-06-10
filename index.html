@@ -21,6 +21,7 @@
     <body>
         <header class="sidenav">
             <h1 id="about-header"><img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h1>
+            <h2 style="position:relative;top:-25px;left:100px">Berlin</h2>
             <nav class="nav">
                 <ul>
                     <li><a class="toggle" href="#about">About / Impressum</a></li>
@@ -30,7 +31,7 @@
         <section id="about" class="vcard contentoverlay">
             <a class="close toggle" href="#about">close</a>
             <h2 class="center">It's <img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h2>
-            <p>Mapnificent shows you the area you can reach with public transport in a given time.</p>
+            <p>Mapnificent shows you the area you can reach with public transport from any point in a given time.</p>
             <p>It was inspired by <a href="http://mapumental.channel4.com">mapumental</a> and you can read the <a href="http://blog.stefanwehrmeyer.com/post/449810520/mapnificent">full story of Mapnificent on my blog</a>.</p>
             <p>Mapnificent is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/3.0">cc-by-nc-sa</a> and <a href="http://github.com/stefanw/Mapnificent">the code is on GitHub</a>.</p>
             <h2>Impressum</h2>
@@ -54,10 +55,10 @@
         <div id="message" class="shortoverlay" style="display:none"></div>
         <script src="media/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
-            if($.cookie("seenVideo") == null){
-                $("#video").show();
-                $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
-            }
+            // if($.cookie("seenVideo") == null){
+            //     $("#video").show();
+            //     $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
+            // }
             var MAPNIFICENT_LAYER = {};
             var MAPNIFICENT_LAYERDATA = {};
             var mapnificent = Mapnificent();
@@ -75,19 +76,8 @@
                 });
             });
         </script>
-<!--        <script src="media/js/elabel.js" type="text/javascript" charset="utf-8"></script> -->
         <script src="media/layers/urbandistance.json" type="text/javascript" charset="utf-8"></script>
         <script src="media/layers/urbandistance.js" type="text/javascript" charset="utf-8"></script>
-<!--        <script src="media/layers/trafficForecast.js" type="text/javascript" charset="utf-8"></script> -->
-<!--        <script src="media/layers/konjunkturmap.json" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/konjunkturmap.js" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/apartmentprices.json" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/apartmentprices.js" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/residentialareas.js" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/crimezones.json" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/crimezones.js" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/webmapservice.json" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/webmapservice.js" type="text/javascript" charset="utf-8"></script> -->
         <script type="text/javascript">
         var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
         document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));

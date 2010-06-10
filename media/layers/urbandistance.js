@@ -153,29 +153,17 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                 '<div id="'+that.idname+'-positionContainer"></div>'+
             '');
         var inter = "";
-        if(mapnificent.hasCompositing){
-            inter = '<label for="'+that.idname+'-intersection">Intersect: </label><input type="checkbox" id="'+that.idname+'-intersection"/>';
+        if(!mapnificent.hasCompositing){
+            inter = ' disabled="disabled"';
         }
         container.after(''+
             '<div class="controlsoverlay" style="right:inherit;width:100px;left:0px !important;bottom:50px;border-left: 0px;border-bottom: 5px solid rgb(213,213,213);border-right: 5px solid rgb(213,213,213);">'+
             '<label for="'+that.idname+'-colored">Colored: </label><input type="checkbox" id="'+that.idname+'-colored"/>'+
-            inter+
+            '<label for="'+that.idname+'-intersection">Intersect: </label><input'+inter+' type="checkbox" id="'+that.idname+'-intersection"/>'+
             '</div>'+
         '');
-//            '<span>Area reachable in max. '+
-//            '<strong id="'+that.idname+'-timeSpan"></strong> minutes <small>(no guarantee)</small> </span><span id="'+that.idname+'-hint" style="color:#0b0;">Click in the grey area to set a new position.</span>'+
-//           '<div id="'+that.idname+'-slider" class="slider"></div>'+
 
-/*        jQuery("#"+that.idname+'-slider').slider({ min: 0, max: 180,
-               slide: updateSlider,
-               stop: updateSlider, 
-               value: minuteValue
-            });
-        jQuery("#"+that.idname+'-slider').slider("disable");
-        jQuery("#"+that.idname+'-timeSpan').text(minuteValue);
-        jQuery('.'+that.idname+'-goby').change(updateGoby);
-        jQuery('#'+that.idname+'-gotime').change(updateGoby);*/
-        jQuery('#'+that.idname+'-intersection').change(function(e){
+        jQuery('#'+that.idname+'-intersection').click(function(e){
             if(!mapnificent.hasCompositing){
                 mapnificent.showMessage("Your browser does not support intersections, try Firefox or Opera!");
                 $(this).attr("checked", null);
