@@ -4,10 +4,9 @@
     By: Stefan Wehrmeyer http://stefanwehrmeyer.com
     If you want to use this software commercially, contact the author.
     
-    This may be published as really Free Software in the future.
 */
 
-var Mapnificent = (function(useroptions){
+var Mapnificent = (function(){
     var CanvasOverlay = (function() {
         /* Most of this is from:
         http://code.google.com/apis/maps/documentation/javascript/overlays.html#CustomOverlays
@@ -121,7 +120,7 @@ var Mapnificent = (function(useroptions){
         return CanvasOverlay;
     }());
     
-    return function(){
+    return function(useroptions){
         var that = {};
         var options = useroptions || {};
         var defaults = {};
@@ -129,6 +128,8 @@ var Mapnificent = (function(useroptions){
         defaults.mapStartCenter = {"lat": 52.51037058766109, "lng": 13.333282470703125};
         defaults.northwest = {"lat":52.754364, "lng":12.882953};
         defaults.southeast = {"lat":52.29693, "lng":13.908883};
+        defaults.mapStyles = {};
+        defaults.mapTypeIds = [google.maps.MapTypeId.ROADMAP];
         defaults.heightCacheFactor = 3;
         defaults.widthCacheFactor = 5;
         defaults.getGMapOptions = function(){
@@ -146,6 +147,9 @@ var Mapnificent = (function(useroptions){
             } else {
                 that.env[key] = defaults[key];
             }
+        }
+        if(typeof(options.layerSettings) !== "undefined"){
+            that.env.layerSettings = options.layerSettings;
         }
         that.env.southwest = {"lat":that.env.southeast.lat, "lng":that.env.northwest.lng};
         that.env.northeast = {"lat":that.env.northwest.lat, "lng":that.env.southeast.lng};
@@ -186,12 +190,25 @@ var Mapnificent = (function(useroptions){
             that.env.blockCountY = Math.ceil(that.env.heightInKm / that.env.blockSize);
             jQuery("#"+that.mapID).height(jQuery(window).height());
             that.env.getGMapOptions();
-            var myOptions = {
-              zoom: that.env.mapStartZoom
-              , center: new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng)
-              , mapTypeId: google.maps.MapTypeId.ROADMAP
+            var lastStyle = google.maps.MapTypeId.ROADMAP;
+            for(var style in that.env.mapStyles){
+                that.env.mapTypeIds.push(style);
+                lastStyle = style;
+            }
+            
+            var mapOptions = {
+              "zoom": that.env.mapStartZoom
+              , "center": new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng)
+              , "mapTypeId": lastStyle
+              , "mapTypeControlOptions": {
+                  "mapTypeIds": that.env.mapTypeIds
+              },
             };
-            that.map = new google.maps.Map(document.getElementById(that.mapID), myOptions);
+            that.map = new google.maps.Map(document.getElementById(that.mapID), mapOptions);
+            for(var style in that.env.mapStyles){
+                var styledMapType = new google.maps.StyledMapType(that.env.mapStyles[style], {name: style});
+                that.map.mapTypes.set(style, styledMapType);
+            }
             // that.map.setCenter(new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng), that.env.mapStartZoom);
             //that.map.enableScrollWheelZoom();
             // that.map.addControl(new GLargeMapControl());
@@ -534,7 +551,7 @@ var Mapnificent = (function(useroptions){
             }
             that.layers[idname].tabid = tabid;
             var container = that.refreshControls(idname);
-            that.layers[idname].layerObject.setup(that.layers[idname].data, container);
+            that.layers[idname].layerObject.setup(that.layers[idname].data, container, that.env.layerSettings[idname]);
             if(!that.isLayerActive(idname)){
                 that.layers[idname].layerObject.deactivate();
             } else {

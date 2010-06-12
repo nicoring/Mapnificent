@@ -110,7 +110,7 @@ header, article, nav, section, aside, footer, canvas {
     -moz-border-radius: 5px;
     border-radius: 5px;
     -webkit-border-radius: 5px;
-    padding: 5px 0px 20px 10px;
+    padding: 5px 15px 20px 15px;
     max-height:400px;
     overflow-y:auto;
     display: none;

@@ -4,10 +4,10 @@
     By: Stefan Wehrmeyer http://stefanwehrmeyer.com
     If you want to use this software commercially, contact the author.
     
-    This may be published as really Free Software in the future.
 */
 var iCanHasFastBrowser = function(){
     return false;
+    // One could use Chrome/Safari 5 without Worker, because it's so fast.
     if(navigator.userAgent.indexOf("Chrome")!=-1){
         return true;
     }
@@ -46,7 +46,6 @@ if(!!window.Worker && !iCanHasFastBrowser()){
         };
         that.callback = function(c){
             if(loaded){
-                console.log("immediate execution of callback");
                 c();
             } else {
                 clb = c;
@@ -55,7 +54,6 @@ if(!!window.Worker && !iCanHasFastBrowser()){
         that.callCallback = function(){
             loaded = true;
             if(!!clb){
-                console.log("executing callback");
                 clb();
             }
             
@@ -99,6 +97,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , stations
         , lines
         , defaultStartAtPosition = {"lat":52.525849,"lng":13.368919}
+        , darkOverlayColor = "rgba(75,75,75,0.4)"
         , intersection = false
         , colored = false
         , colorCache = {}
@@ -154,26 +153,38 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             '');
         var inter = "";
         if(!mapnificent.hasCompositing){
-            inter = ' disabled="disabled"';
+            inter = ' readonly="readonly"';
         }
         container.after(''+
             '<div class="controlsoverlay" style="right:inherit;width:100px;left:0px !important;bottom:50px;border-left: 0px;border-bottom: 5px solid rgb(213,213,213);border-right: 5px solid rgb(213,213,213);">'+
             '<label for="'+that.idname+'-colored">Colored: </label><input type="checkbox" id="'+that.idname+'-colored"/>'+
-            '<label for="'+that.idname+'-intersection">Intersect: </label><input'+inter+' type="checkbox" id="'+that.idname+'-intersection"/>'+
+            '<label class="'+that.idname+'-intersection" for="'+that.idname+'-intersection">Intersect: </label><input'+inter+' class="'+that.idname+'-intersection" type="checkbox" id="'+that.idname+'-intersection"/>'+
             '</div>'+
         '');
-
-        jQuery('#'+that.idname+'-intersection').click(function(e){
-            if(!mapnificent.hasCompositing){
+        if(!mapnificent.hasCompositing){
+            jQuery('.'+that.idname+'-intersection').click(function(e){
                 mapnificent.showMessage("Your browser does not support intersections, try Firefox or Opera!");
-                $(this).attr("checked", null);
                 return;
-            }
-            intersection = $(this).is(":checked");
-            mapnificent.trigger("redraw");
-        });
+            });
+        } else {
+            jQuery('#'+that.idname+'-intersection').change(function(e){
+                intersection = jQuery(this).is(":checked");
+                if(intersection && startPositionsCount < 2){
+                    mapnificent.showMessage("You need at least two points to see an intersection!");
+                }
+                if(intersection && jQuery('#'+that.idname+'-colored').is(":checked")){
+                    jQuery('#'+that.idname+'-colored').attr("checked", null);
+                    colored = false;
+                }
+                mapnificent.trigger("redraw");
+            });            
+        }
         jQuery('#'+that.idname+'-colored').change(function(e){
-            colored = $(this).is(":checked");
+            colored = jQuery(this).is(":checked");
+            if(colored && jQuery('#'+that.idname+'-intersection').is(":checked")){
+                jQuery('#'+that.idname+'-intersection').attr("checked", null);
+                intersection = false;
+            }
             mapnificent.trigger("redraw");
         });
     };
@@ -304,7 +315,6 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             "address": "Loading...", "LOCK": false, "ready": false,
             "infowindow": new google.maps.InfoWindow({content: ""}),
             "webworker": WorkerFacade("media/layers/urbandistanceworker.js")};
-        console.log("setting for onmessage ", startPositions[index].webworker);
         startPositions[index].webworker.onmessage = workerMessage(index);
         startPositions[index].webworker.onerror = workerError(index);
         mapnificent.getAddressForPoint(latlng, setAddressForIndex(index));
@@ -379,7 +389,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         }
     */
     
-    that.setup = function(dataobjs, controlcontainer){
+    that.setup = function(dataobjs, controlcontainer, options){
+        defaultStartAtPosition = options.defaultStartAtPosition || defaultStartAtPosition;
+        darkOverlayColor = options.darkOverlayColor || darkOverlayColor;
         stations = dataobjs[0];
         lines = dataobjs[1];
         blockGrid = [];
@@ -391,6 +403,14 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         }
         stationList = [];
         for(var stationId in stations){
+            for(var i=0;i<stations[stationId].reachableStations.length;i++){
+                if(!stations[stationId].reachableStations[i].minutes){
+                    stations[stationId].reachableStations[i].minutes = 2;
+                }
+                if(!stations[stationId].reachableStations[i].stay){
+                    stations[stationId].reachableStations[i].stay = 0;
+                }
+            }
             if (stations[stationId].pos != null){
                 if(mapnificent.inRange(stations[stationId].pos)){
                     stationList.push(stationId);
@@ -432,7 +452,6 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         for(var k=0;k<nextStations.length;k++){
             distances.push(mapnificent.getDistanceInKm(startPos, stations[nextStations[k]].pos));
         }
-        console.log("calculate");
         startPositions[index].webworker.postMessage({"fromStations": nextStations, "blockGrid": blockGrid, "position": startPos, 
             "stations": stations, "lines": lines, "distances": distances,
             "maxWalkTime": maxWalkTime, "minutesPerKm": minutesPerKm, "estimatedMinuteLimit": estimatedMinuteLimit});
@@ -506,7 +525,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         } else {
             ctx.globalCompositeOperation = "source-over";
         }
-        ctx.fillStyle = "rgba(75,75,75,0.4)";
+        ctx.fillStyle = darkOverlayColor;
         var xy = mapnificent.getCanvasXY(mapnificent.env.northwest);
         ctx.fillRect(xy.x,xy.y,mapnificent.env.map_width,mapnificent.env.map_height);
     };
@@ -557,7 +576,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     var getStationMinuteList = function(){
         var sml = [];
         for (var i=0; i<stationList.length;i++){
-            var smallesIndex = null, smallestMinute = Infinity;
+            var smallestIndex = false, smallestMinute = Infinity;
             for(var index in startPositions){
                 if(typeof(stationMap[index][stationList[i]]) !== "undefined" &&
                         stationMap[index][stationList[i]].minutes < smallestMinute){
@@ -565,7 +584,9 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                     smallestIndex = index;
                 }
             }
-            sml.push([smallestIndex, smallestMinute, stationList[i]]);
+            if (smallestIndex !== false){
+                sml.push([smallestIndex, smallestMinute, stationList[i]]);
+            }
         }
         return sml;
     };
@@ -587,7 +608,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             var station = stations[stationId];
             if (typeof station.pos !== "object" || station.pos === null){continue;}
             if (typeof stationMap[index][stationId] === "undefined"){continue;}
-            if (stationMap[index][stationId].minutes > startPositions[index].minutes){continue;}
+            if (stationMap[index][stationId].minutes > minuteSorted[i][1]){continue;}
             ctx.beginPath();
             drawMinuteCircle(ctx, station.pos, stationMap[index][stationId].minutes, startPositions[index].minutes, addMinuteGradient);
             ctx.fill();
