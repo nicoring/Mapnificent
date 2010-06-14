@@ -24,18 +24,18 @@
             <h2 style="position:relative;top:-30px;left:90px">London</h2>
             <nav class="nav">
                 <ul>
-                    <li><a class="toggle" href="#about">About / Impressum</a></li>
+                    <li><a class="toggle" href="#about">About</a></li>
                 </ul>
             </nav>
         </header>
         <section id="about" class="vcard contentoverlay">
             <a class="close toggle" href="#about">close</a>
             <h2 class="center">It's <img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h2>
-            <p>Mapnificent shows you the area you can reach with public transport from any point in a given time.</p>
+            <p>Mapnificent London claims to know all weekend night busses after 1am in London.</p>
             <p>It was inspired by <a href="http://mapumental.channel4.com">mapumental</a> and you can read the <a href="http://blog.stefanwehrmeyer.com/post/449810520/mapnificent">full story of Mapnificent on my blog</a>.</p>
             <p>Mapnificent is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/3.0">cc-by-nc-sa</a> and <a href="http://github.com/stefanw/Mapnificent">the code is on GitHub</a>.</p>
-            <h2>Impressum</h2>
-            <p>Mapnificent was created by<br/>
+            <h2>Mapnificent was created by</h2>
+            <p>
             <a class="url" href="http://stefanwehrmeyer.com" title="Stefan Wehrmeyer">
                 <span class="given-name">Stefan</span>
                 <span class="family-name">Wehrmeyer</span>
@@ -61,12 +61,17 @@
             var MAPNIFICENT_LAYER = {};
             var MAPNIFICENT_LAYERDATA = {};
             var mapnificent = Mapnificent({"mapStartCenter": {"lat": 51.500515, "lng": -0.128317},
-                "northwest": {"lat":51.635067, "lng":-0.355682},
-                "southeast": {"lat":51.399206,"lng": 0.171661},
+                "northwest": {"lat":51.713416, "lng":-0.560303},
+                "southeast": {"lat":51.273944, "lng":0.346069},
                 "mapStartZoom": 12,
                 "layerSettings": {"urbanDistance": 
-                    {"defaultStartAtPosition": {"lat": 51.4945146, "lng": -0.146578}},
-                    "darkOverlayColor": "rgba(75,75,75,0.7)"
+                    {"defaultStartAtPosition": {"lat": 51.4945146, "lng": -0.146578}
+                     , "darkOverlayColor": "rgba(0,0,0,0.75)"
+                     , "colorMaxAcceptableTime": 120 
+                     , "colorBaseGradientColor": 240
+                     , "colorMaxGradientColor" : 120
+                     , "estimatedMaxCalculateCalls": 700000
+                    }
                     },
                 "mapStyles": {"Night": [
                             {

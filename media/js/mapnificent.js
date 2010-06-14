@@ -132,13 +132,13 @@ var Mapnificent = (function(){
         defaults.mapTypeIds = [google.maps.MapTypeId.ROADMAP];
         defaults.heightCacheFactor = 3;
         defaults.widthCacheFactor = 5;
+        defaults.layerSettings = {};
         defaults.getGMapOptions = function(){
             return {"googleBarOptions": {"client": "pub-8009811934212849",
                     "channel": "6817437931",
                     "adsafe": "low",
                     "language": "de"}};
         };
-        defaults.blockSize = 0.5; // in km 500 * 500 meters per block
     
         that.env = {};
         for(var key in defaults){
@@ -186,8 +186,6 @@ var Mapnificent = (function(){
             that.env.Gnortheast = new google.maps.LatLng(that.env.northeast.lat, that.env.northeast.lng);
             that.env.widthInKm = that.getDistanceInKm(that.env.northwest, that.env.northeast);
             that.env.heightInKm = that.getDistanceInKm(that.env.northwest, that.env.southwest);
-            that.env.blockCountX = Math.ceil(that.env.widthInKm / that.env.blockSize);
-            that.env.blockCountY = Math.ceil(that.env.heightInKm / that.env.blockSize);
             jQuery("#"+that.mapID).height(jQuery(window).height());
             that.env.getGMapOptions();
             var lastStyle = google.maps.MapTypeId.ROADMAP;
@@ -202,7 +200,7 @@ var Mapnificent = (function(){
               , "mapTypeId": lastStyle
               , "mapTypeControlOptions": {
                   "mapTypeIds": that.env.mapTypeIds
-              },
+              }
             };
             that.map = new google.maps.Map(document.getElementById(that.mapID), mapOptions);
             for(var style in that.env.mapStyles){
@@ -471,19 +469,6 @@ var Mapnificent = (function(){
                 pos.lng<that.env.northwest.lng || pos.lng>that.env.southeast.lng) {return false;}
             return true;
         };
-        that.getBlockIndizesForPosition = function(pos) {
-            /* This is somewhat less correct, but should be faster than alternative */
-            if(!that.inRange(pos)){return [0,0];}
-            var indexX = Math.floor((that.env.widthInKm / that.env.latLngDiffs.lng * (pos.lng - that.env.northwest.lng)) / that.env.blockSize);
-            var indexY = Math.floor((that.env.heightInKm / that.env.latLngDiffs.lat * (that.env.northwest.lat - pos.lat)) / that.env.blockSize);
-            return [indexX, indexY];
-        };
-        that.getAlternativeBlockIndizesForPosition = function(pos) {
-            if(!that.inRange(pos)){return [0,0];}
-            var indexX = Math.floor(that.getDistanceInKm(pos,{"lat": pos.lat, "lng": that.env.northwest.lng}) / that.env.blockSize);
-            var indexY = Math.floor(that.getDistanceInKm(pos,{"lat": that.env.northwest.lat, "lng":pos.lng}) / that.env.blockSize);
-            return [indexX, indexY];
-        };
         that.getCanvasXY = function(pos) {
             var xy = that.canvasoverlay.fromLatLngToDivPixel(new google.maps.LatLng(pos.lat, pos.lng));
             var x = xy.x - (that.canvasoverlayxy.x);
@@ -551,7 +536,11 @@ var Mapnificent = (function(){
             }
             that.layers[idname].tabid = tabid;
             var container = that.refreshControls(idname);
-            that.layers[idname].layerObject.setup(that.layers[idname].data, container, that.env.layerSettings[idname]);
+            var lsettings = {};
+            if(typeof(that.env.layerSettings[idname])!== 'undefined'){
+                lsettings = that.env.layerSettings[idname];
+            }
+            that.layers[idname].layerObject.setup(that.layers[idname].data, container, lsettings);
             if(!that.isLayerActive(idname)){
                 that.layers[idname].layerObject.deactivate();
             } else {
@@ -611,43 +600,6 @@ var Mapnificent = (function(){
                 result.push([nearestObjects[i], that.getDistanceInKm(pos, lookup[nearestObjects[i]].pos)]);
             }
             return result;
-        };
-        that.getBlockIndizesForPositionByRadius = function(pos, rad) {
-            var indizes = that.getBlockIndizesForPosition(pos);
-            if(rad == 0){
-                return [indizes];
-            }
-            var results = [];
-            var maxDistanceToEdge = Math.max(Math.abs(that.env.blockCountX-indizes[0]), Math.abs(indizes[1]-that.env.blockCountY));
-            var nearestObjects = [];
-            for(var i=rad;i<maxDistanceToEdge;i++){
-                for (var j=-i;j<(i+1);j++){
-                    var nx = indizes[0]-i;
-                    var ny = indizes[1]+j;
-                    if(nx>=0 && ny < that.env.blockCountY && ny > 0){
-                        results.push([nx,ny]);
-                    }
-                    var nx = indizes[0]+i;
-                    var ny = indizes[1]+j;
-                    if(nx < that.env.blockCountX && ny < that.env.blockCountY && ny > 0){
-                        results.push([nx,ny]);
-                    }
-                    if(j>-i && j<i){
-                        var nx = indizes[0]+j;
-                        var ny = indizes[1]-i;
-                        if(nx < that.env.blockCountX && nx > 0 && ny >= 0){
-                            results.push([nx,ny]);
-                        }
-                        var nx = indizes[0]+j;
-                        var ny = indizes[1]-i;
-                        if(nx < that.env.blockCountX && nx > 0 && ny >= 0){
-                            results.push([nx,ny]);
-                        }
-                    }
-                }
-                break; // algorithm change: break here, wait for next round. I miss iterators.
-            }
-            return results;
         };
     
         that.addTab = function(idname, title, active) {

@@ -49,6 +49,9 @@ var urbandistanceWorker = (function(){
             calculateTimes(station.reachableStations[i].stationId, nextMinutes, 
                     station.reachableStations[i].line, station.reachableStations[i].stay);
         }
+        // for(var i=0;station.blockIndizes.length;i++){
+        //     
+        // }
         return true;
     };
 
@@ -66,6 +69,7 @@ var urbandistanceWorker = (function(){
         stations = event.data.stations;
         lines = event.data.lines;
         startPos = event.data.position;
+        blockGrid = event.data.blockGrid;
         estimatedMinuteLimit = event.data.estimatedMinuteLimit;
         var fromStations = event.data.fromStations
             , distances = event.data.distances

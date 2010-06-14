@@ -84,10 +84,11 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , callbacksForIndex = {}
         , minutesPerKm = 13
         , estimatedMinuteLimit = 600 // 10 hours travel in a city, really?
-        , colorMaxAcceptableTime = 60
+        , colorMaxAcceptableTime = 120
         , colorBaseGradientColor = 120
-        , colorMaxGradientColor = 0
+        , colorMaxGradientColor = 240
         , maxWalkTime = 10
+        , maxWalkTravelTime = 180
         , positionCounter = -1
         , startPositions = {}
         , startPositionsCount = 0
@@ -98,12 +99,69 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , lines
         , defaultStartAtPosition = {"lat":52.525849,"lng":13.368919}
         , darkOverlayColor = "rgba(75,75,75,0.4)"
+        , estimatedMaxCalculateCalls = 2000000
         , intersection = false
         , colored = false
         , colorCache = {}
-        , minuteSorted = false;
-        
-        
+        , minuteSorted = false
+        , blockCountX
+        , blockCountY
+        , blockSize = 0.5; // in km 500 * 500 meters per block
+    
+    var getBlockIndizesForPosition = function(pos) {
+        var indexX = Math.floor((mapnificent.env.widthInKm / mapnificent.env.latLngDiffs.lng * (pos.lng - mapnificent.env.northwest.lng)) / blockSize);
+        var indexY = Math.floor((mapnificent.env.heightInKm / mapnificent.env.latLngDiffs.lat * (mapnificent.env.northwest.lat - pos.lat)) / blockSize);
+        return [indexX, indexY];
+    };
+    var getAlternativeBlockIndizesForPosition = function(pos) {
+        var indexX = Math.floor(mapnificent.getDistanceInKm(pos,{"lat": pos.lat, "lng": mapnificent.env.northwest.lng}) / blockSize);
+        var indexY = Math.floor(mapnificent.getDistanceInKm(pos,{"lat": mapnificent.env.northwest.lat, "lng":pos.lng}) / blockSize);
+        return [indexX, indexY];
+    };
+    
+    var getBlockIndizesForPositionByRadius = function(pos, rad, all) {
+        var indizes = getBlockIndizesForPosition(pos);
+        if(rad === 0){
+            return [indizes];
+        }
+        var results = [];
+        var maxDistanceToEdge = Math.max(Math.abs(blockCountX-indizes[0]), Math.abs(indizes[1]-blockCountY));
+        var nearestObjects = [];
+        if(!!all){
+            var start = 0;
+        } else {
+            var start = rad;
+        }
+        for(var i=start;i<maxDistanceToEdge;i++){
+            for (var j=-i;j<(i+1);j++){
+                var nx = indizes[0]-i;
+                var ny = indizes[1]+j;
+                if(nx>=0 && ny < blockCountY && ny > 0){
+                    results.push([nx,ny]);
+                }
+                var nx = indizes[0]+i;
+                var ny = indizes[1]+j;
+                if(nx < blockCountX && ny < blockCountY && ny > 0){
+                    results.push([nx,ny]);
+                }
+                if(j>-i && j<i){
+                    var nx = indizes[0]+j;
+                    var ny = indizes[1]-i;
+                    if(nx < blockCountX && nx > 0 && ny >= 0){
+                        results.push([nx,ny]);
+                    }
+                    var nx = indizes[0]+j;
+                    var ny = indizes[1]-i;
+                    if(nx < blockCountX && nx > 0 && ny >= 0){
+                        results.push([nx,ny]);
+                    }
+                }
+            }
+            break; // algorithm change: break here, wait for next round. I miss iterators.
+        }
+        return results;
+    };
+    
     var updateGoby = function(e){
         var newMaxWalkTime, newMinutesPerKm;
         try{
@@ -152,13 +210,13 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                 '<div id="'+that.idname+'-positionContainer"></div>'+
             '');
         var inter = "";
-        if(!mapnificent.hasCompositing){
+        if(mapnificent.hasCompositing){
             inter = ' readonly="readonly"';
+            inter = '<label class="'+that.idname+'-intersection" for="'+that.idname+'-intersection">Intersect: </label><input'+inter+' class="'+that.idname+'-intersection" type="checkbox" id="'+that.idname+'-intersection"/>';
         }
         container.after(''+
             '<div class="controlsoverlay" style="right:inherit;width:100px;left:0px !important;bottom:50px;border-left: 0px;border-bottom: 5px solid rgb(213,213,213);border-right: 5px solid rgb(213,213,213);">'+
-            '<label for="'+that.idname+'-colored">Colored: </label><input type="checkbox" id="'+that.idname+'-colored"/>'+
-            '<label class="'+that.idname+'-intersection" for="'+that.idname+'-intersection">Intersect: </label><input'+inter+' class="'+that.idname+'-intersection" type="checkbox" id="'+that.idname+'-intersection"/>'+
+            '<label for="'+that.idname+'-colored">Colored: </label><input type="checkbox" id="'+that.idname+'-colored"/>'+inter+
             '</div>'+
         '');
         if(!mapnificent.hasCompositing){
@@ -208,7 +266,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
                 '</div>');
         jQuery('#'+that.idname+'-'+index).mouseover(highlightMarker(index));
         jQuery('#'+that.idname+'-'+index).mouseout(unhighlightMarker(index));
-        jQuery('#'+that.idname+'-'+index+'-slider').slider({ min: 0, max: 180,
+        jQuery('#'+that.idname+'-'+index+'-slider').slider({ min: 0, max: maxWalkTravelTime,
                      slide: updateSlider(index),
                      stop: updateSlider(index), 
                      value: startPositions[index].minutes,
@@ -254,7 +312,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     };
     
     var updateCalculationProcess = function(index, count){
-        var estimatedMaxCalculateCalls = 2000000, percent = 0;
+        var percent = 0;
         if (count>estimatedMaxCalculateCalls){
             percent = 99;
         } else {
@@ -390,31 +448,40 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     */
     
     that.setup = function(dataobjs, controlcontainer, options){
+        estimatedMaxCalculateCalls = options.estimatedMaxCalculateCalls || estimatedMaxCalculateCalls;
         defaultStartAtPosition = options.defaultStartAtPosition || defaultStartAtPosition;
+        colorMaxGradientColor = options.colorMaxGradientColor || colorMaxGradientColor;
+        colorBaseGradientColor = options.colorBaseGradientColor ||  colorBaseGradientColor;
         darkOverlayColor = options.darkOverlayColor || darkOverlayColor;
+        blockCountX = Math.ceil(mapnificent.env.widthInKm / blockSize);
+        blockCountY = Math.ceil(mapnificent.env.heightInKm / blockSize);
+        
         stations = dataobjs[0];
         lines = dataobjs[1];
         blockGrid = [];
-        for(var i=0;i<mapnificent.env.blockCountX;i+=1){
+        for(var i=0;i<blockCountX;i+=1){
             blockGrid.push([]);
-            for(var j=0;j<mapnificent.env.blockCountX;j+=1){
+            for(var j=0;j<blockCountX;j+=1){
                 blockGrid[i].push([]);
             }
         }
         stationList = [];
         for(var stationId in stations){
             for(var i=0;i<stations[stationId].reachableStations.length;i++){
-                if(!stations[stationId].reachableStations[i].minutes){
+                if(!stations[stationId].reachableStations[i].minutes && stations[stationId].reachableStations[i].minutes !== 0){
                     stations[stationId].reachableStations[i].minutes = 2;
                 }
-                if(!stations[stationId].reachableStations[i].stay){
+                if(!stations[stationId].reachableStations[i].stay && stations[stationId].reachableStations[i].stay !== 0){
                     stations[stationId].reachableStations[i].stay = 0;
                 }
             }
             if (stations[stationId].pos != null){
                 if(mapnificent.inRange(stations[stationId].pos)){
                     stationList.push(stationId);
-                    var indizes = mapnificent.getBlockIndizesForPosition(stations[stationId].pos);
+                    var indizes = getBlockIndizesForPosition(stations[stationId].pos);
+                    // var indizes = getBlockIndizesForPositionByRadius(stations[stationId].pos, 1, true);
+                    // stations[stationId].blockIndizes = indizes.slice();
+                    // blockGrid[indizes[0][0]][indizes[0][1]].push(stationId);
                     blockGrid[indizes[0]][indizes[1]].push(stationId);
                 }
             }
@@ -438,7 +505,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             , nextStations = []
             , distances = [];
         while(i<=1 || nextStations.length == 0){
-            var indizes = mapnificent.getBlockIndizesForPositionByRadius(startPos, i);
+            var indizes = getBlockIndizesForPositionByRadius(startPos, i);
             for(var j=0;j<indizes.length;j+=1){
                 if(blockGrid[indizes[j][0]][indizes[j][1]].length>0){
                     nextStations = jQuery.merge(nextStations, blockGrid[indizes[j][0]][indizes[j][1]]);
@@ -453,7 +520,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             distances.push(mapnificent.getDistanceInKm(startPos, stations[nextStations[k]].pos));
         }
         startPositions[index].webworker.postMessage({"fromStations": nextStations, "blockGrid": blockGrid, "position": startPos, 
-            "stations": stations, "lines": lines, "distances": distances,
+            "stations": stations, "lines": lines, "distances": distances, "blockGrid": blockGrid,
             "maxWalkTime": maxWalkTime, "minutesPerKm": minutesPerKm, "estimatedMinuteLimit": estimatedMinuteLimit});
     };
     
@@ -538,7 +605,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             ctx.globalCompositeOperation = "source-over";
         }
         var count = 0;
-        ctx.fillStyle = "rgba(75,75,75,0.8)";
+        ctx.fillStyle = darkOverlayColor;
         for(var index in startPositions){
             if (!startPositions[index].ready){continue;}
             if(count == 1 && intersection){
