@@ -27,6 +27,11 @@ p{
     margin:0 0 0.5em;
 }
 
+ul {
+    margin-left:2em;
+    margin-bottom:0.5em;
+}
+
 header, article, nav, section, aside, footer, canvas {
     display:block;
 }
@@ -110,7 +115,7 @@ header, article, nav, section, aside, footer, canvas {
     -moz-border-radius: 5px;
     border-radius: 5px;
     -webkit-border-radius: 5px;
-    padding: 5px 15px 20px 15px;
+    padding: 5px 5px 20px 15px;
     max-height:400px;
     overflow-y:auto;
     display: none;

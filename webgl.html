@@ -1,31 +1,45 @@
 <html> 
  
 <head> 
-<title>Learning WebGL &mdash; lesson 1</title> 
-<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1"> 
+<title></title> 
+<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
  
 <script type="text/javascript" src="media/js/sylvester.js"></script> 
 <script type="text/javascript" src="media/js/glUtils.js"></script> 
  
-<script id="shader-fs" type="x-shader/x-fragment"> 
+<script id="shader-fs" type="x-shader/x-fragment">
+    varying float depth; 
     void main(void) {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+        // gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z);
+        gl_FragColor = vec4((0.0+gl_FragCoord.z), 0, 0, 0.5);
+        // gl_FragColor = vec4(depth,depth,depth,depth);
     }
 </script> 
  
 <script id="shader-vs" type="x-shader/x-vertex"> 
+
   attribute vec3 aVertexPosition;
- 
+  varying float depth;
   uniform mat4 uMVMatrix;
   uniform mat4 uPMatrix;
  
   void main(void) {
+    depth = aVertexPosition[2];
     gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
   }
 </script> 
  
  
 <script type="text/javascript"> 
+
+var maxTime = 100;
+var time = 0;
+
+var speedInMeterPerMin = 75.0 / 1.4;
+
+// umwegfaktor: 1.4
+
+var distanceInMaxTime = maxTime * speedInMeterPerMin;
  
   var gl;
   function initGL(canvas) {
@@ -117,13 +131,22 @@
     var m = Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4();
     multMatrix(m);
   }
+  
+  function mvRotate(ang, v) {
+    var arad = ang * Math.PI / 180.0;
+    var m = Matrix.Rotation(arad, $V([v[0], v[1], v[2]])).ensure4x4();
+    multMatrix(m);
+  }
  
  
   var pMatrix;
   function perspective(fovy, aspect, znear, zfar) {
-    pMatrix = makePerspective(fovy, aspect, znear, zfar);
+      pMatrix = makePerspective(fovy, aspect, znear, zfar);
   }
  
+  function ortho(left, right, bottom, top, znear, zfar) {
+      pMatrix = makeOrtho(left, right, bottom, top, znear, zfar);
+  }
  
   function setMatrixUniforms() {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, new WebGLFloatArray(pMatrix.flatten()));
@@ -136,25 +159,17 @@
   function initBuffers() {
     conePositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
-    var d, a = 0, res=10, vertices = [], count = 0;
+    var d, a = 0, res=50, vertices = [], count = 0;
     d = 2*Math.PI/res;
     vertices.push(0.0);vertices.push(0.0);vertices.push(0.0);
-    for(var i = 0 ; i < res ; i++ ){
-        vertices.push(Math.cos(a));
-        vertices.push(Math.sin(a));
-        vertices.push(0.0);
+    for(var i = 0 ; i <= res ; i++ ){
+        vertices.push(Math.cos(a)*distanceInMaxTime);
+        vertices.push(Math.sin(a)*distanceInMaxTime);
+        vertices.push(maxTime);
         a += d ;
     }
-    count += res;
-    a = 0.0 ;
-    vertices.push(0.0);vertices.push(0.0);vertices.push(1.0);
-    for (var i = 0 ; i < res ; i++ ){
-        vertices.push(Math.cos(a));
-        vertices.push(Math.sin(a));
-        vertices.push(1.0);
-        a += d ;
-    }    
-    count += res;
+    // vertices.push(0.0);vertices.push(0.0);vertices.push(0.0);
+    count += res+2;
     gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
     conePositionBuffer.itemSize = 3;
     conePositionBuffer.numItems = count;
@@ -162,18 +177,27 @@
  
  
   function drawScene() {
+      time += 1;
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
  
-    perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
-    loadIdentity();
- 
-    mvTranslate([-1.5, 0.0, -7.0]);
- 
-    gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLE_FAN, 0, conePositionBuffer.numItems);
+    // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
+    ortho(-1000,1000,-1000,1000, 0, maxTime);
+    // ortho projection
+
+    for(var i=0;i<3;i++){
+        loadIdentity();
+        // mvRotate([0.0, 0.0, 0.0]);
+        // mvTranslate([0, 0, 0]);
+        // mvRotate(180, [0, 1, 0]);
+        mvTranslate([500*i, 500, -1.0*i]);
+        // mvPushMatrix();
+        gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
+        gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+        setMatrixUniforms();
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, conePositionBuffer.numItems);
+        // mvPopMatrix();
+    }
  
   }
  
@@ -192,7 +216,8 @@
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
  
-    setInterval(drawScene, 15);
+    // setInterval(drawScene, 15);
+    drawScene()
   }
  
  
