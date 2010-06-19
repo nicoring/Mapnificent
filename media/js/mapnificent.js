@@ -120,7 +120,10 @@ var Mapnificent = (function(){
         return CanvasOverlay;
     }());
     
-    return function(useroptions){
+    var MAPNIFICENT_LAYER = {};
+    var MAPNIFICENT_LAYERDATA = {};
+    
+    var func = function(useroptions){
         var that = {};
         var options = useroptions || {};
         var defaults = {};
@@ -529,7 +532,7 @@ var Mapnificent = (function(){
                 that.layers[idname].data = data;
             }
             that.layers[idname].idname = idname;
-            that.layers[idname].layerObject = layer;
+            that.layers[idname].layerObject = layer(that);
             var tabid = that.layers[idname].layerObject.tabid;
             if(typeof(tabid) === "undefined"){
                 tabid = "other";
@@ -685,4 +688,12 @@ var Mapnificent = (function(){
     
         return that;
     };
+    
+    func.addLayer = function(name, obj){
+        MAPNIFICENT_LAYER[name] = obj;
+    };
+    func.addLayerData = function(name, obj){
+        MAPNIFICENT_LAYERDATA[name] = obj;
+    };
+    return func;
 }());

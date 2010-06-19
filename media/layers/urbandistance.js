@@ -30,7 +30,7 @@ if(!!window.Worker && !iCanHasFastBrowser()){
                 try{
                     workers[path]({"data": param});
                 }catch(err){
-//                    theworker.onerror(err);
+                    theworker.onerror(err);
                     throw err;
                 }
             };
@@ -76,7 +76,7 @@ if(!!window.Worker && !iCanHasFastBrowser()){
     document.body.appendChild(scr);
 }
 
-MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
+Mapnificent.addLayer("urbanDistance", function (mapnificent){
     var that = mapnificent.createLayer();
     that.tabid = "mobility";
     that.idname = "urbanDistance";
@@ -99,6 +99,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
         , lines
         , defaultStartAtPosition = {"lat":52.525849,"lng":13.368919}
         , darkOverlayColor = "rgba(75,75,75,0.4)"
+        , drawColor = "rgba(75,75,75,1)"
         , estimatedMaxCalculateCalls = 2000000
         , intersection = false
         , colored = false
@@ -605,7 +606,7 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
             ctx.globalCompositeOperation = "source-over";
         }
         var count = 0;
-        ctx.fillStyle = darkOverlayColor;
+        ctx.fillStyle = drawColor;
         for(var index in startPositions){
             if (!startPositions[index].ready){continue;}
             if(count == 1 && intersection){
@@ -701,4 +702,4 @@ MAPNIFICENT_LAYER.urbanDistance = (function (mapnificent){
     };
     
     return that;
-}(mapnificent));
+});

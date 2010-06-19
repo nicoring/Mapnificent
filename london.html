@@ -28,6 +28,20 @@
                 </ul>
             </nav>
         </header>
+        <section id="hint" class="contentoverlay" style="display:block;width:400px">
+            <a class="close toggle" href="#hint">close</a>
+            <h2>Watch out: Alpha Stage</h2>
+            <p>This software is far from finished and still lacks lots of data.<br/>
+                You should still play around and try the following:</p>
+                <ul>
+                    <li>change the time distance of point by using the slider</li>
+                    <li>add more points by clicking on the map</li>
+                    <li>drag points around</li>
+                    <li>use the beautiful "Colored" option</li>
+                    <li>check "Intersect" (Firefox, Opera only) to see intersections</li>
+                </ul>
+            <p>Try it now!</p>
+        </section>
         <section id="about" class="vcard contentoverlay">
             <a class="close toggle" href="#about">close</a>
             <h2 class="center">It's <img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h2>
@@ -52,7 +66,7 @@
         <div id="map"></div>
         <div id="controls" class="controlsoverlay"></div>
         <div id="message" class="shortoverlay" style="display:none"></div>
-        <script src="media/js/mapnificent.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/mapnificent.js?version=0-9" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
             // if($.cookie("seenVideo") == null){
             //     $("#video").show();
@@ -94,8 +108,8 @@
                 });
             });
         </script>
-        <script src="media/layers/london_urbandistance.json" type="text/javascript" charset="utf-8"></script>
-        <script src="media/layers/urbandistance.js" type="text/javascript" charset="utf-8"></script>
+        <script src="media/layers/london_urbandistance.json?version=0-9" type="text/javascript" charset="utf-8"></script>
+        <script src="media/layers/urbandistance.js?version=0-9" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript">
         var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
         document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
