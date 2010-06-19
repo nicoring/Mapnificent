@@ -526,7 +526,7 @@ var Mapnificent = (function(){
         
         that.addLayer = function(name){
             that.layers[name] = {};
-        }
+        };
     
         that.setupLayer = function(idname, layer, data) {
             if(typeof(data) === "undefined"){
@@ -586,19 +586,7 @@ var Mapnificent = (function(){
             };
             that.geocoder.geocode({'latLng': new google.maps.LatLng(latlng.lat, latlng.lng)}, callback);
         };
-    
-        that.calculateLayer = function(idname) {
-            jQuery("#loading").show();
-            window.setTimeout(function(){
-                that.layers[idname].layerObject.calculate(that.currentPosition);
-                that.trigger("redraw");
-                jQuery("#loading").fadeOut(200);
-            },0);
-            if(that.currentPosition != null){
-                that.layers[idname].layerObject.calculate(that.currentPosition);
-            }
-        };
-    
+        
         that.closestObjects = function(pos, key, lookup) {
             var nearestObjects = that.getNearestObjectsForPosition(pos, key);
             var result = [];

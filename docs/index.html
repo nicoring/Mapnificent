@@ -87,13 +87,13 @@
                 <h3>Layer logic</h3>
                 <p>The layer logic must be encapsulated in a JavaScript Module constructor that should close over a mapnificent reference that should be given as a parameter:</p>
                 <pre>
-MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
+Mapnificent.addLayer("awesomeLayer", function(mapnificent){
     /* mapnificent.createLayer returns a default Layer object */
     var that = mapnificent.createLayer(); 
     that.idname = "awesomeLayer";
     // tabid will be overriden with "custom" when loaded live
     that.tabid = "someTabId"; 
-    var privateVariable;
+    var privateVariable, someValue = "default";
     var privateFunction = function(e){
         if (LOCK){return;}
         LOCK = true;
@@ -102,9 +102,6 @@ MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
     };
     that.getTitle = function(){
         return "Awesome Layer";
-    };
-    that.appendControlHtmlTo = function(container){
-        container.html('Some Awesome HTML');
     };
     that.activate = function(){
         /* if empty can be left out */
@@ -115,9 +112,13 @@ MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
     that.getDrawingLevel = function(){
         return 3; // defaults to 20 if not set
     };
-    that.setup = function(dataobjs){
+    that.setup = function(dataobjs, controlcontainer, options){
         /* stores layerdata in private variable */
         crimes = dataobjs[0];
+        // adds custom html to designated container
+        jQuery(controlcontainer).append('hello');
+        // override from options
+        someValue = options.someValue || someValue; 
     };
     that.redraw = function(ctx){
         /* Converts a geographical point to a canvas coordinate */
@@ -127,7 +128,7 @@ MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
         ctx.restore();
     };
     return that; //don't forget that
-}(mapnificent)); // dont'forget that mapnificent either
+});
                 </pre>
                 <p>Mapnificent provides some handy methods. One has been used in this example: <tt>getCanvasXY</tt> converts geographic coordinates into coordinates that map to the canvas.</p>
                 <p>Some other useful methods and values:</p>
@@ -135,30 +136,51 @@ MAPNIFICENT_LAYER.awesomeLayer = (function (mapnificent){
                     <li><tt>mapnificent.getDistanceInKm({"lat":52.0, "lng":13.0}, {"lat":52.4, "lng":14.0})</tt> returns the distance between to geographical points in kilometers</li>
                     <li><tt>mapnificent.inRange({"lat":52.0, "lng":13.0})</tt> returns <tt>true</tt> if geographic position is in the layer area.</li>
                     <li><tt>mapnificent.getDrawingContext()</tt> returns the drawing context of the canvas.</li>
-                    <li><tt>mapnificent.getCurrentPosition()</tt> returns the current position (in the form <tt>{"lat": 52.0, "lng": 13.0}</tt>) or <tt>null</tt> if not set.</li>
                     <li><tt>mapnificent.showMessage("My message")</tt> shows a message briefly to the user. Only use if really necessary.</li>
                     <li><tt>mapnificent.hasCompositing</tt> returns <tt>true</tt> if most compositing operations are available (a lot are currently broken in webkit).</li>
                     <li><tt>mapnificent.bind("myEvent", function(){})</tt> A really simple event handling for mapnificent. Current events are only "redraw" and "setPosition" (both of which you already are automatically subscribed to via <tt>redraw</tt> and <tt>calculate</tt>)</li>
                     <li><tt>mapnificent.trigger("myEvent")</tt> triggers the event and fires every function previously bound to that event.</li>
                     <li><tt>mapnificent.env</tt> is an object and contains all options that can be set with mapnificent and other useful values like <tt>widthInKm</tt> of the canvas etc. Inspect it to see what else is in there.</li>
                     <li><tt>mapnificent.map</tt> is the map instance (currently Google Maps). You may use their API, but be aware that the map engine may be subject to change.</li>
+                    <li><tt>mapnificent.createMarker(position, options)</tt>returns a marker instance.</li>
+                    <li><tt>mapnificent.addEventOnMarker(event, marker, callback)</tt>binds an event like "click" to marker and fires callback when event happens.</li>
+                    <li><tt>mapnificent.removeMarker(marker)</tt>removes marker from map.</li>
+                    <li><tt>mapnificent.getAddressForPoint(latlng, callback)</tt>makes a geocoding lookup.</li>
                     <li><tt>mapnificent.DegToRadFactor</tt>, <tt>mapnificent.RadToDegFactor</tt>, <tt>mapnificent.circleRadians</tt> are always useful. Not subject to change.</li>
-                    <li>There is also a not-too-clever hashing of geo positions into blocks in mapnificent, that can be used by layers. Check out the PublicTransport implementation.</li>
                     <li>The <tt>jQuery</tt> object is available.</li>
                 </ul>
                 <h3>Layer Data</h3>
-                <p>Layer data should be in its own file and in JSONP format like so:</p>
+                <p>Layer data should be in its own file and formatted like so:</p>
                 <pre>
-MAPNIFICENT_LAYERDATA.awesomeLayer = [DataObject1, DataObject2];
+Mapnificent.addLayer("awesomeLayer", [DataObject1, DataObject2]);
                 </pre>
                 <p>Remember the <tt>dataobjs</tt> in your <tt>setup</tt> method? Here is the array that will be passed.</p>
                 <h3>Final step</h3>
-                <p>Mapnificent will go over the objects in <tt>MAPNIFICENT_LAYER</tt> and set them up as layers.</p>
-                <p>You can use the "Load your own!" Tab to load your layer from another server and use it with mapnificent! The information where the layer is located is stored in a cookie, so you don't have to enter it over and over when reloading the page.</p>
+                <p>Instantiate a mapnificent instance and add the layers like so:</p>
+                <pre>
+var mapnificent = Mapnificent();        // get a new mapnificent instance
+mapnificent.addLayer("urbanDistance"); // add "urbanDistance" layer
+$(document).ready(function(){
+    mapnificent.initMap("map"); // "map" is id of map container div
+});
+                </pre>
+                <p>The Mapnificent function takes also options:</p>
+                <pre>
+var mapnificent = Mapnificent({"mapStartCenter": 
+        {"lat": 51.500515, "lng": -0.128317},
+    "northwest": {"lat":51.713416, "lng":-0.560303}, // bounds of overlay
+    "southeast": {"lat":51.273944, "lng":0.346069},
+    "mapStartZoom": 12, // start zoom
+    "layerSettings": { // These settings are passed to the respective layer
+        "urbanDistance": 
+            {"defaultStartAtPosition": {"lat": 51.4945146, "lng": -0.146578}
+             , "darkOverlayColor": "rgba(0,0,0,0.75)"
+             , "colorMaxGradientColor" : 120
+            }
+        }
+    });
+                </pre>
                 <p>If anything goes wrong, check JavaScript Console, that everything is named right and read the mapnificent source code (it's not really long or complicated).</p>
-                <h3>Supported Browsers and Performance</h3>
-                <p>You should take care that your layer works in at least latest Firefox, Safari/Chromium and Opera. Your layer should also be fast enough to be usable: you should rather take some time to pre-calculate values (e.g. in <tt>calculate</tt>) than making your controls really slow.</p>
-                <p>Also note that the canvas implementation differs between the supported browsers and you should only rely on the intersection of their feature sets. Some browsers (e.g. Opera!) might sometimes need a special handling to improve performance (check with e.g. <tt>jQuery.browser.opera</tt>, see PublicTransport implementation for details).</p>
             </section>
         </article>
         <footer class="footer">
