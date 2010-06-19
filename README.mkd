@@ -4,7 +4,7 @@ Mapnificent
 Mapnificent is a framework for overlaying an HTML5 canvas element on Google Maps to visualize geographical information.
 
 
-The current main use case for this framework is [http://www.mapnificent.de](Mapnificent Berlin Rush Hour) and [http://london.mapnificent.de](Mapnificent London Night Buses), a visualization inspired by [http://mapumental.channel4.com](Mapumental).
+The current main use case for this framework are [Mapnificent Berlin Rush Hour](http://www.mapnificent.de) and [Mapnificent London Night Buses](http://london.mapnificent.de). These visualizations of public transport travel time were inspired by [Mapumental](http://mapumental.channel4.com).
 
 The framework and layers are released under [Creative Commons by-nc-sa](http://creativecommons.org/licenses/by-nc-sa/3.0).
 
