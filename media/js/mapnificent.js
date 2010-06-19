@@ -505,7 +505,7 @@ var Mapnificent = (function(){
         };
     
         that.setup = function(layerlogic, layerdata) {
-            for(var idname in layerlogic){
+            for(var idname in that.layers){
                 that.setupLayer(idname, layerlogic[idname], layerdata[idname]);
             }
             that.resize();
@@ -523,9 +523,12 @@ var Mapnificent = (function(){
                 lastclick = new Date().getTime();
             });
         };
+        
+        that.addLayer = function(name){
+            that.layers[name] = {};
+        }
     
         that.setupLayer = function(idname, layer, data) {
-            that.layers[idname] = {};
             if(typeof(data) === "undefined"){
                 that.layers[idname].data = [];
             } else {

@@ -66,14 +66,12 @@
         <div id="map"></div>
         <div id="controls" class="controlsoverlay"></div>
         <div id="message" class="shortoverlay" style="display:none"></div>
-        <script src="media/js/mapnificent.js?version=0-9" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/mapnificent.js?version=0-91" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
             // if($.cookie("seenVideo") == null){
             //     $("#video").show();
             //     $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
             // }
-            var MAPNIFICENT_LAYER = {};
-            var MAPNIFICENT_LAYERDATA = {};
             var mapnificent = Mapnificent({"mapStartCenter": {"lat": 51.500515, "lng": -0.128317},
                 "northwest": {"lat":51.713416, "lng":-0.560303},
                 "southeast": {"lat":51.273944, "lng":0.346069},
@@ -94,6 +92,7 @@
                             }        
                           ]}
                 });
+            mapnificent.addLayer("urbanDistance");
 
             $(document).ready(function(){
                 mapnificent.initMap("map");

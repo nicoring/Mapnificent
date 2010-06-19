@@ -54,14 +54,14 @@
         <div id="map"></div>
         <div id="controls" class="controlsoverlay"></div>
         <div id="message" class="shortoverlay" style="display:none"></div>
-        <script src="media/js/mapnificent.js?version=0-9" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/mapnificent.js?version=0-91" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
             // if($.cookie("seenVideo") == null){
             //     $("#video").show();
             //     $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
             // }
             var mapnificent = Mapnificent();
-
+            mapnificent.addLayer("urbanDistance");
             $(document).ready(function(){
                 mapnificent.initMap("map");
                 jQuery(".toggle").click(function(e){
