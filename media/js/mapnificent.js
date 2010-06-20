@@ -237,8 +237,28 @@ var Mapnificent = (function(){
                     mapnificent.showMessage("Your browser seems to suck, no canvas support! I can't work that way...");
                     return;
                 }
-                that.ctx = that.canvas.getContext("2d");
-                that.checkCompositing();
+                var names = [ "webgl", "experimental-webgl", "moz-webgl", "webkit-3d" ];
+                for (var i=0; i<names.length; i++) {
+                    try { 
+                        that.ctx = that.canvas.getContext(names[i]);
+                        if (that.ctx) { break; }
+                    } catch (e) { }
+                }
+                if(!that.ctx){
+                    alert("No WebGL!");
+                    return;
+                }
+                that.ctx.viewportWidth = that.canvas.width;
+                that.ctx.viewportHeight = that.canvas.height;
+                initShaders(that.ctx);
+
+                that.ctx.clearColor(0.0, 0.0, 0.0, 0.5);
+
+                that.ctx.clearDepth(1.0);
+
+                that.ctx.enable(that.ctx.DEPTH_TEST);
+                that.ctx.depthFunc(that.ctx.LEQUAL);
+                
                 that.setScale();
                 that.mapBounds = that.map.getBounds();
                 that.mapBoundsXY = that.canvasoverlay.fromLatLngToDivPixel(that.mapBounds.getSouthWest());
@@ -246,7 +266,6 @@ var Mapnificent = (function(){
             };
             that.canvasoverlay = new CanvasOverlay(that.env.Gsouthwest, that.canvas_id, onaddcallback, that.map);
             google.maps.event.addListener(that.map, "zoom_changed", function(oldLevel, newLevel){
-                that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
                 window.setTimeout(function(){
                     that.setScale();
                     that.trigger("redraw");
@@ -257,31 +276,6 @@ var Mapnificent = (function(){
                     that.trigger("redraw");
                 }
             });
-        };
-    
-        that.checkCompositing = function(){
-            if(typeof(that.ctx.getImageData) === "undefined"){
-                that.hasCompositing = false;
-                return;
-            }
-            that.hasCompositing = true;
-            that.ctx.save();
-            that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
-            that.ctx.fillStyle = "rgba(255,255,255,1)";
-            that.ctx.fillRect(0,0,3,3);
-            that.ctx.globalCompositeOperation = "destination-in";
-            that.ctx.fillRect(2,2,3,3);
-            that.ctx.globalCompositeOperation = "source-out";
-            that.ctx.fillStyle = "rgba(75,75,75,0.75)";
-            that.ctx.fillRect(0,0,5,5);
-            var pix = that.ctx.getImageData(1, 1, 1, 1).data;
-            if(pix[3] === 0){ // Compositing fails, there is full transparency here
-                /* This currently affects webkit browsers: safari, chromium, chrome */
-    //            that.showMessage("Your browser fails some drawing tests. Your Mapnificent will not look optimal!");
-                that.hasCompositing = false;
-            }
-            that.ctx.restore();
-            that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
         };
     
         that.setScale = function(){
@@ -312,6 +306,8 @@ var Mapnificent = (function(){
               that.canvas.height = that.mapSize.height*that.env.heightCacheFactor;
               needPositionSet = true;
             }
+            that.ctx.viewportWidth = that.canvas.width;
+            that.ctx.viewportHeight = that.canvas.height;
             if(needPositionSet){
                 that.offsetActive = true;
                 that.setMapPosition();
@@ -320,7 +316,6 @@ var Mapnificent = (function(){
                 that.canvasoverlay.setPoint(that.env.Gsouthwest);
                 that.canvasoverlayxy = that.canvasoverlay.fromLatLngToDivPixel(that.canvasoverlay.getPoint());
             }
-            that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
         };
     
         that.moveMapPosition = function(){
@@ -479,9 +474,9 @@ var Mapnificent = (function(){
             return {"x" : x, "y": y};
         };
         that.redraw = function(){
-            that.ctx.globalCompositeOperation = "source-over";
-            that.ctx.globalAlpha = 1;
-            that.ctx.clearRect(0,0,that.canvas.width, that.canvas.height);
+            that.ctx.viewport(0, 0, that.ctx.viewportWidth, that.ctx.viewportHeight);
+            that.ctx.clear(that.ctx.COLOR_BUFFER_BIT | that.ctx.DEPTH_BUFFER_BIT);
+            
             var layers = [];
             for(var idname in that.layers){
                 layers.push(that.layers[idname]);
@@ -546,7 +541,7 @@ var Mapnificent = (function(){
             if(typeof(that.env.layerSettings[idname])!== 'undefined'){
                 lsettings = that.env.layerSettings[idname];
             }
-            that.layers[idname].layerObject.setup(that.layers[idname].data, container, lsettings);
+            that.layers[idname].layerObject.setup(that.layers[idname].data, container, lsettings, that.ctx);
             if(!that.isLayerActive(idname)){
                 that.layers[idname].layerObject.deactivate();
             } else {

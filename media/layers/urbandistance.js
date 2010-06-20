@@ -107,7 +107,8 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         , minuteSorted = false
         , blockCountX
         , blockCountY
-        , blockSize = 0.5; // in km 500 * 500 meters per block
+        , blockSize = 0.5 // in km 500 * 500 meters per block
+        , conePositionBuffer;
     
     var getBlockIndizesForPosition = function(pos) {
         var indexX = Math.floor((mapnificent.env.widthInKm / mapnificent.env.latLngDiffs.lng * (pos.lng - mapnificent.env.northwest.lng)) / blockSize);
@@ -448,7 +449,7 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         }
     */
     
-    that.setup = function(dataobjs, controlcontainer, options){
+    that.setup = function(dataobjs, controlcontainer, options, gl){
         estimatedMaxCalculateCalls = options.estimatedMaxCalculateCalls || estimatedMaxCalculateCalls;
         defaultStartAtPosition = options.defaultStartAtPosition || defaultStartAtPosition;
         colorMaxGradientColor = options.colorMaxGradientColor || colorMaxGradientColor;
@@ -487,6 +488,22 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
                 }
             }
         }
+        // WebGL Cone Init
+        conePositionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
+        var d, a = 0, res=50, vertices = [], count = 0;
+        d = 2*Math.PI/res;
+        vertices.push(0.0); vertices.push(0.0); vertices.push(0.0);
+        for(var i = 0 ; i <= res ; i++ ){
+           vertices.push(Math.cos(a));
+           vertices.push(Math.sin(a));
+           vertices.push(1);
+           a += d ;
+        }
+        gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
+        conePositionBuffer.itemSize = 3;
+        conePositionBuffer.numItems = Math.round(vertices.length/3);
+        
         appendControlHtmlTo(controlcontainer);
         if(!!WorkerFacade.fake){
             WorkerFacade.callback(function(){addPosition(defaultStartAtPosition);});
@@ -690,8 +707,43 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         ctx.restore();
     };
     
+    that.redrawWebGL = function(gl){
+        // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, maxTime);
+        ortho(-mapnificent.canvas.width/2,-mapnificent.canvas.height/2,mapnificent.canvas.width/2,mapnificent.canvas.height/2, 0, maxTime*2);
+        // ortho projection
+        loadIdentity();
+        mvTranslate([0.0, 0.0,-maxTime]);
+        mvRotate(180, [0.0, 1.0, 0.0]);
+        var index = 0;
+        for(var i=0; i<stationList.length;i++){
+            var stationId = stationList[i];
+            var station = stations[stationId];
+            if (typeof station.pos !== "object" || station.pos === null){continue;}
+            if (typeof stationMap[index][stationId] === "undefined"){continue;}
+            if (stationMap[index][stationId].minutes > startPositions[index].minutes){continue;}
+            mvPushMatrix();
+            var minutes = stationMap[index][stationId].minutes;
+            var minuteValue = startPositions[index].minutes;
+            var mins = Math.min((minuteValue - minutes),maxWalkTime);
+            var radius = Math.max(mins * pixelPerMinute, 1);
+            var nxy = mapnificent.getCanvasXY(station.pos);
+            // mvScale([radius, radius, maxTime* pixelPerMinute]);
+            mvTranslate([nxy.x, nxy.y, -50]);
+            console.log(nxy.x, nxy.y);
+            gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
+            gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
+            setMatrixUniforms(gl);
+            gl.drawArrays(gl.TRIANGLE_FAN, 0, conePositionBuffer.numItems);
+
+            // gl.drawArrays(gl.TRIANGLES, 0, conePositionBuffer.numItems); // bad one
+            mvPopMatrix();
+        }
+    };
+    
     that.redraw = function(ctx){
         pixelPerMinute = (1/minutesPerKm) * mapnificent.env.pixelPerKm;
+        that.redrawWebGL(ctx);
+        return;
         ctx.save();
         if (colored){
             redrawColored(ctx);

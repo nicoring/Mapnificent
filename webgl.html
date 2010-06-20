@@ -1,38 +1,51 @@
-<html> 
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+        <title>Mapnificent - Interactive overlays of geographic data</title>
+        <link rel="icon" type="image/png" href="media/img/favicon.png" />
+        <!--[if IE]>
+        <script src="http://html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+        <![endif]-->
+        <!--[if IE]><script src="http://explorercanvas.googlecode.com/svn/trunk/excanvas.js"></script><![endif]-->
+       
+        <link href="media/css/screen.css" rel="stylesheet" type="text/css" media="screen,projection" />
+        <link type="text/css" href="media/css/smoothness/jquery-ui.css" rel="stylesheet" />
+        <meta name="robots" content="index, follow" />
+        <!-- <script type="text/javascript" src="http://www.google.com/jsapi?key=ABQIAAAAIIC6NMcawLeTWKvhEPhJEBTCfEqn7ZHAgoqnlvF7Z4lQiS11bBRdBz_D_UyO9BGIJ26Z2y2wK2EDrQ&amp;hl=de"></script> -->
+        <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+       <script src="media/js/jquery.js" type="text/javascript" charset="utf-8"></script>
+       <script src="media/js/jquery-ui.js" type="text/javascript" charset="utf-8"></script> 
+       <script type="text/javascript" src="media/js/sylvester.js"></script> 
+       <script type="text/javascript" src="media/js/glUtils.js"></script> 
  
-<head> 
-<title></title> 
-<meta http-equiv="content-type" content="text/html; charset=utf-8"> 
+        <script id="shader-fs" type="x-shader/x-fragment">
+            varying float depth; 
+            void main(void) {
+                // gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z);
+                gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);
+                // gl_FragColor = vec4(depth,depth,depth,depth);
+                // gl_FragColor = vec4(gl_FragCoord.z,0,0,1.0);
+                // gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
+            }
+        </script> 
  
-<script type="text/javascript" src="media/js/sylvester.js"></script> 
-<script type="text/javascript" src="media/js/glUtils.js"></script> 
- 
-<script id="shader-fs" type="x-shader/x-fragment">
-    varying float depth; 
-    void main(void) {
-        // gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z);
-        gl_FragColor = vec4((0.0+gl_FragCoord.z), 0, 0, 0.5);
-        // gl_FragColor = vec4(depth,depth,depth,depth);
-    }
-</script> 
- 
-<script id="shader-vs" type="x-shader/x-vertex"> 
+        <script id="shader-vs" type="x-shader/x-vertex"> 
 
-  attribute vec3 aVertexPosition;
-  varying float depth;
-  uniform mat4 uMVMatrix;
-  uniform mat4 uPMatrix;
+          attribute vec3 aVertexPosition;
+          uniform mat4 uMVMatrix;
+          uniform mat4 uPMatrix;
  
-  void main(void) {
-    depth = aVertexPosition[2];
-    gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
-  }
-</script> 
+          void main(void) {
+            gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+          }
+        </script> 
  
  
 <script type="text/javascript"> 
 
-var maxTime = 100;
+var maxTime = 120;
 var time = 0;
 
 var speedInMeterPerMin = 75.0 / 1.4;
@@ -40,19 +53,6 @@ var speedInMeterPerMin = 75.0 / 1.4;
 // umwegfaktor: 1.4
 
 var distanceInMaxTime = maxTime * speedInMeterPerMin;
- 
-  var gl;
-  function initGL(canvas) {
-    try {
-      gl = canvas.getContext("experimental-webgl");
-      gl.viewportWidth = canvas.width;
-      gl.viewportHeight = canvas.height;
-    } catch(e) {
-    }
-    if (!gl) {
-      alert("Could not initialise WebGL, sorry :-(");
-    }
-  }
  
  
   function getShader(gl, id) {
@@ -92,7 +92,7 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
  
  
   var shaderProgram;
-  function initShaders() {
+  function initShaders(gl) {
     var fragmentShader = getShader(gl, "shader-fs");
     var vertexShader = getShader(gl, "shader-vs");
  
@@ -116,6 +116,7 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
  
  
   var mvMatrix;
+  var mvMatrixStack = [];
  
   function loadIdentity() {
     mvMatrix = Matrix.I(4);
@@ -137,6 +138,28 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
     var m = Matrix.Rotation(arad, $V([v[0], v[1], v[2]])).ensure4x4();
     multMatrix(m);
   }
+  
+  function mvScale(v) {
+    var m = Matrix.Scale($V([v[0], v[1], v[2]])).ensure4x4();
+    multMatrix(m);
+  }
+  
+  function mvPushMatrix(m) {
+    if (m) {
+      mvMatrixStack.push(m.dup());
+      mvMatrix = m.dup();
+    } else {
+      mvMatrixStack.push(mvMatrix.dup());
+    }
+  }
+ 
+  function mvPopMatrix() {
+    if (mvMatrixStack.length == 0) {
+      throw "Invalid popMatrix!";
+    }
+    mvMatrix = mvMatrixStack.pop();
+    return mvMatrix;
+  }
  
  
   var pMatrix;
@@ -148,31 +171,9 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
       pMatrix = makeOrtho(left, right, bottom, top, znear, zfar);
   }
  
-  function setMatrixUniforms() {
+  function setMatrixUniforms(gl) {
     gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, new WebGLFloatArray(pMatrix.flatten()));
     gl.uniformMatrix4fv(shaderProgram.mvMatrixUniform, false, new WebGLFloatArray(mvMatrix.flatten()));
-  }
- 
- 
- 
-  var conePositionBuffer;
-  function initBuffers() {
-    conePositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
-    var d, a = 0, res=50, vertices = [], count = 0;
-    d = 2*Math.PI/res;
-    vertices.push(0.0);vertices.push(0.0);vertices.push(0.0);
-    for(var i = 0 ; i <= res ; i++ ){
-        vertices.push(Math.cos(a)*distanceInMaxTime);
-        vertices.push(Math.sin(a)*distanceInMaxTime);
-        vertices.push(maxTime);
-        a += d ;
-    }
-    // vertices.push(0.0);vertices.push(0.0);vertices.push(0.0);
-    count += res+2;
-    gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
-    conePositionBuffer.itemSize = 3;
-    conePositionBuffer.numItems = count;
   }
  
  
@@ -181,35 +182,37 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
  
-    // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, 100.0);
-    ortho(-1000,1000,-1000,1000, 0, maxTime);
+    // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, maxTime);
+    ortho(-20000,20000,-20000,20000, 0, maxTime*2);
     // ortho projection
-
-    for(var i=0;i<3;i++){
-        loadIdentity();
-        // mvRotate([0.0, 0.0, 0.0]);
-        // mvTranslate([0, 0, 0]);
-        // mvRotate(180, [0, 1, 0]);
-        mvTranslate([500*i, 500, -1.0*i]);
-        // mvPushMatrix();
+    loadIdentity();
+    mvTranslate([0.0, 0.0,-maxTime]);
+    mvRotate(180, [0.0, 1.0, 0.0]);
+    // mvTranslate([0, 0, 0]);
+    // 
+    // mvTranslate([0, 0, -130.0]);
+    for(var i=0;i<10;i++){
+        mvPushMatrix();
+        mvTranslate([Math.random()*20000-10000, Math.random()*20000-10000 ,Math.random()*-100]);
         gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
         gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
         setMatrixUniforms();
         gl.drawArrays(gl.TRIANGLE_FAN, 0, conePositionBuffer.numItems);
-        // mvPopMatrix();
-    }
- 
+    
+        // gl.drawArrays(gl.TRIANGLES, 0, conePositionBuffer.numItems); // bad one
+        mvPopMatrix();
+    } 
   }
  
  
  
   function webGLStart() {
-    var canvas = document.getElementById("lesson01-canvas");
+    var canvas = document.getElementById("canvas");
     initGL(canvas);
-    initShaders();
-    initBuffers();
+    // initShaders();
+    // initBuffers();
  
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
  
     gl.clearDepth(1.0);
  
@@ -217,7 +220,7 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
     gl.depthFunc(gl.LEQUAL);
  
     // setInterval(drawScene, 15);
-    drawScene()
+    drawScene();
   }
  
  
@@ -225,11 +228,75 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
 </script> 
  
  
-</head> 
- 
- 
-<body onload="webGLStart();"> 
-  <canvas id="lesson01-canvas" style="border: none;" width="500" height="500"></canvas> 
-</body> 
- 
+    </head>
+    <body>
+        <header class="sidenav">
+            <h1 id="about-header"><img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h1>
+            <h2 style="position:relative;top:-25px;left:100px">Berlin</h2>
+            <nav class="nav">
+                <ul>
+                    <li><a class="toggle" href="#about">About / Impressum</a></li>
+                </ul>
+            </nav>
+        </header>
+        <section id="about" class="vcard contentoverlay">
+            <a class="close toggle" href="#about">close</a>
+            <h2 class="center">It's <img style="vertical-align:middle;margin:10px 0 0;" src="media/img/mapnificent.png" alt="Mapnificent"/></h2>
+            <p>Mapnificent shows you the area you can reach with public transport from any point in a given time.</p>
+            <p>It was inspired by <a href="http://mapumental.channel4.com">mapumental</a> and you can read the <a href="http://blog.stefanwehrmeyer.com/post/449810520/mapnificent">full story of Mapnificent on my blog</a>.</p>
+            <p>Mapnificent is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/3.0">cc-by-nc-sa</a> and <a href="http://github.com/stefanw/Mapnificent">the code is on GitHub</a>.</p>
+            <h2>Impressum</h2>
+            <p>Mapnificent was created by<br/>
+            <a class="url" href="http://stefanwehrmeyer.com" title="Stefan Wehrmeyer">
+                <span class="given-name">Stefan</span>
+                <span class="family-name">Wehrmeyer</span>
+                </a><br/>
+                <span class="adr">
+                    <span class="street-address">Roonstr. 22</span><br/>
+                    <span class="postal-code">12203</span> <span class="locality">Berlin</span>,
+                    <span class="country-name">Germany</span>
+                </span><br/>
+                <a href="mailto:mail@mapnificent.de">mail@mapnificent.de</a>
+            </p>
+            <p>Follow <a href="http://twitter.com/mapnificent">@mapnificent on Twitter</a>!</p>
+            <h2>Looking for Mapnificent London?</h2>
+            <p><a href="http://london.mapnificent.de/">Click here for Mapnficent London</a></p>
+        </section>
+        <div id="map"></div>
+        <div id="controls" class="controlsoverlay"></div>
+        <div id="message" class="shortoverlay" style="display:none"></div>
+        <script src="media/js/mapnificent.js?version=0-91" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript" charset="utf-8">
+            // if($.cookie("seenVideo") == null){
+            //     $("#video").show();
+            //     $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
+            // }
+            var mapnificent = Mapnificent();
+            mapnificent.addLayer("urbanDistance");
+            $(document).ready(function(){
+                mapnificent.initMap("map");
+                jQuery(".toggle").click(function(e){
+                    e.preventDefault();
+                    var obj = jQuery(jQuery(this).attr("href"));
+                    if(obj.css("display") == "none"){
+                        obj.fadeIn(400);
+                    } else {
+                        obj.fadeOut(400);
+                    }
+                });
+            });
+        </script>
+        <script src="media/layers/urbandistance.json?version=0-9" type="text/javascript" charset="utf-8"></script>
+        <script src="media/layers/urbandistance.js?version=0-9" type="text/javascript" charset="utf-8"></script>
+        <script type="text/javascript">
+        var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+        document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+        </script>
+        <script type="text/javascript">
+            try {
+                var pageTracker = _gat._getTracker("UA-15128105-1");
+                pageTracker._trackPageview();
+            } catch(err) {}
+        </script>
+    </body>
 </html>
