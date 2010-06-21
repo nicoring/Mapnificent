@@ -24,10 +24,10 @@
             varying float depth; 
             void main(void) {
                 // gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z);
-                // gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);
+                gl_FragColor = vec4(gl_FragCoord.z, gl_FragCoord.z, gl_FragCoord.z, 1.0);
                 // gl_FragColor = vec4(depth,depth,depth,depth);
                 // gl_FragColor = vec4(gl_FragCoord.z,0,0,1.0);
-                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+                // gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
             }
         </script> 
  
@@ -48,7 +48,7 @@
 var maxTime = 120;
 var time = 0;
 
-var speedInMeterPerMin = 75.0 / 1.4;
+var speedInMeterPerMin = 0.075 / 1.4;
 
 // umwegfaktor: 1.4
 
@@ -271,7 +271,7 @@ var distanceInMaxTime = maxTime * speedInMeterPerMin;
             //     $("#video").show();
             //     $.cookie("seenVideo", "yes", { path: '/', expires: 28 });
             // }
-            var mapnificent = Mapnificent();
+            var mapnificent = Mapnificent({"mapStartZoom": 10});
             mapnificent.addLayer("urbanDistance");
             $(document).ready(function(){
                 mapnificent.initMap("map");

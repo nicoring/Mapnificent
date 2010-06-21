@@ -495,9 +495,9 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         d = 2*Math.PI/res;
         vertices.push(0.0); vertices.push(0.0); vertices.push(0.0);
         for(var i = 0 ; i <= res ; i++ ){
-           vertices.push(Math.cos(a));
-           vertices.push(Math.sin(a));
-           vertices.push(1);
+           vertices.push(Math.cos(a)*distanceInMaxTime);
+           vertices.push(Math.sin(a)*distanceInMaxTime);
+           vertices.push(maxTime);
            a += d ;
         }
         gl.bufferData(gl.ARRAY_BUFFER, new WebGLFloatArray(vertices), gl.STATIC_DRAW);
@@ -709,11 +709,11 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
     
     that.redrawWebGL = function(gl){
         // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, maxTime);
-        ortho(-mapnificent.canvas.width/2
-            , mapnificent.canvas.width/2
-            , -mapnificent.canvas.height/2
-            , mapnificent.canvas.height/2
-            , 0, maxTime*2);
+        ortho(0
+            , mapnificent.canvas.width
+            , 0
+            , mapnificent.canvas.height
+            , 0, maxTime);
         // ortho(-100
         //     , 100
         //     , -100
@@ -722,12 +722,12 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         // ortho(-20000,20000,-20000,20000, 0, maxTime*2);
         // ortho projection
         loadIdentity();
-        // mvTranslate([-mapnificent.canvas.width/2, -mapnificent.canvas.height/2, -maxTime]);
-        mvRotate(180, [0.0, 1.0, 0.0]);
+        mvTranslate([0,0, -1.0]);
+        // mvRotate(180, [0.0, 1.0, 0.0]);
         var index = 0;
         for(var i=0; i<stationList.length;i++){
             var stationId = stationList[i];
-            if(stationId != '9003201'){continue;}
+            // if(stationId != '9003201'){continue;}
             var station = stations[stationId];
             if (typeof station.pos !== "object" || station.pos === null){continue;}
             if (typeof stationMap[index][stationId] === "undefined"){continue;}
@@ -738,9 +738,11 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
             var mins = Math.min((minuteValue - minutes),maxWalkTime);
             var radius = Math.max(mins * pixelPerMinute, 1);
             var nxy = mapnificent.getCanvasXY(station.pos);
-            // mvScale([radius, radius, maxTime* pixelPerMinute]);
-            mvTranslate([nxy.x, nxy.y, -5]);
-            console.log(nxy.x, nxy.y, "not applied!");
+            console.log(radius, maxTime* pixelPerMinute);
+            // mvScale([1.0, 1.0, 1.0]);
+            mvTranslate([nxy.x, mapnificent.canvas.height-nxy.y, -mins]);
+            console.log(nxy.x, mapnificent.canvas.height-nxy.y);
+            console.log(mapnificent.canvas.width, mapnificent.canvas.height);
             gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
             setMatrixUniforms(gl);
