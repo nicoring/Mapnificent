@@ -85,7 +85,7 @@
                 <p>Mapnificent is supposed to be extensible with layers &mdash; layers you are supposed to contribute!</p>
                 <p>A layer consists of a JavaScript file that contains the layer logic and optionally a JSONP file that contains the layer data.</p>
                 <h3>Layer logic</h3>
-                <p>The layer logic must be encapsulated in a JavaScript Module constructor that should close over a mapnificent reference that should be given as a parameter:</p>
+                <p>The layer logic is encapsulated in a JavaScript function that takes a mapnificent instance and returns a layer object:</p>
                 <pre>
 Mapnificent.addLayer("awesomeLayer", function(mapnificent){
     /* mapnificent.createLayer returns a default Layer object */

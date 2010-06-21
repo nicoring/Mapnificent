@@ -709,14 +709,25 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
     
     that.redrawWebGL = function(gl){
         // perspective(45, gl.viewportWidth / gl.viewportHeight, 0.1, maxTime);
-        ortho(-mapnificent.canvas.width/2,-mapnificent.canvas.height/2,mapnificent.canvas.width/2,mapnificent.canvas.height/2, 0, maxTime*2);
+        ortho(-mapnificent.canvas.width/2
+            , mapnificent.canvas.width/2
+            , -mapnificent.canvas.height/2
+            , mapnificent.canvas.height/2
+            , 0, maxTime*2);
+        // ortho(-100
+        //     , 100
+        //     , -100
+        //     , 100
+        //     , 0.1, maxTime*2);
+        // ortho(-20000,20000,-20000,20000, 0, maxTime*2);
         // ortho projection
         loadIdentity();
-        mvTranslate([0.0, 0.0,-maxTime]);
+        // mvTranslate([-mapnificent.canvas.width/2, -mapnificent.canvas.height/2, -maxTime]);
         mvRotate(180, [0.0, 1.0, 0.0]);
         var index = 0;
         for(var i=0; i<stationList.length;i++){
             var stationId = stationList[i];
+            if(stationId != '9003201'){continue;}
             var station = stations[stationId];
             if (typeof station.pos !== "object" || station.pos === null){continue;}
             if (typeof stationMap[index][stationId] === "undefined"){continue;}
@@ -728,8 +739,8 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
             var radius = Math.max(mins * pixelPerMinute, 1);
             var nxy = mapnificent.getCanvasXY(station.pos);
             // mvScale([radius, radius, maxTime* pixelPerMinute]);
-            mvTranslate([nxy.x, nxy.y, -50]);
-            console.log(nxy.x, nxy.y);
+            mvTranslate([nxy.x, nxy.y, -5]);
+            console.log(nxy.x, nxy.y, "not applied!");
             gl.bindBuffer(gl.ARRAY_BUFFER, conePositionBuffer);
             gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, conePositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
             setMatrixUniforms(gl);

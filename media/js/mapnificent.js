@@ -252,7 +252,7 @@ var Mapnificent = (function(){
                 that.ctx.viewportHeight = that.canvas.height;
                 initShaders(that.ctx);
 
-                that.ctx.clearColor(0.0, 0.0, 0.0, 0.5);
+                that.ctx.clearColor(0.0, 0.0, 0.0, 0.2);
 
                 that.ctx.clearDepth(1.0);
 
