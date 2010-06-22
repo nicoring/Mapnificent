@@ -58,7 +58,7 @@ var urbandistanceWorker = (function(){
 
     var getWaitTime = function(station1, line1, station2, line2){
         if(typeof lines[line2] !== "undefined" && !!lines[line2].interval){
-            return lines[line2].interval/2;
+            return Math.log(lines[line2].interval)/0.40546510810816438;
         }
         return 6; // Well, uhm, this is a fallback
     };
