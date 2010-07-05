@@ -8,10 +8,10 @@
 var iCanHasFastBrowser = function(){
     return false;
     // One could use Chrome/Safari 5 without Worker, because it's so fast.
-    if(navigator.userAgent.indexOf("Chrome")!=-1){
-        return true;
-    }
-    return false;
+    // if(navigator.userAgent.indexOf("Chrome")!=-1){
+    //     return true;
+    // }
+    // return false;
 };
 
 var WorkerFacade;
@@ -23,57 +23,49 @@ if(!!window.Worker && !iCanHasFastBrowser()){
     }());
 } else {
     WorkerFacade = (function(){
-        var workers = {}, clb = false, loaded = false, masters = {};
+        var workers = {}, masters = {}, loaded = false;
         var that = function(path){
-            var theworker = {};
-            theworker.postMessage = function(param){
+            var theworker = {}, loaded = false, callings = [];
+            theworker.postToWorkerFunction = function(args){
                 try{
-                    workers[path]({"data": param});
+                    workers[path]({"data":args});
                 }catch(err){
                     theworker.onerror(err);
-                    throw err;
                 }
             };
+            theworker.postMessage = function(params){
+                if(!loaded){
+                    callings.push(params);
+                    return;
+                }
+                theworker.postToWorkerFunction(params);
+            };
             masters[path] = theworker;
+            var scr = document.createElement("SCRIPT");
+            scr.src = path;
+            scr.type = "text/javascript";
+            scr.onload = function(){
+                loaded = true;
+                while(callings.length > 0){
+                    theworker.postToWorkerFunction(callings[0]);
+                    callings.shift();
+                }
+            };
+            document.body.appendChild(scr);
             return theworker;
         };
         that.fake = true;
         that.add = function(pth, worker){
             workers[pth] = worker;
+            return function(param){
+                masters[pth].onmessage({"data": param});
+            };
         };
         that.toString = function(){
             return "FakeWorker('"+path+"')";
         };
-        that.callback = function(c){
-            if(loaded){
-                c();
-            } else {
-                clb = c;
-            }
-        };
-        that.callCallback = function(){
-            loaded = true;
-            if(!!clb){
-                clb();
-            }
-            
-        };
-        // This is a global function!
-        postMessage = function(param){
-            for (var path in workers){
-                masters[path].onmessage({"data": param});
-            }
-        };
         return that;
     }());
-    var scr = document.createElement("SCRIPT");
-    scr.src = "media/layers/urbandistanceworker.js";
-    scr.type = "text/javascript";
-    scr.charset = "utf-8";
-    scr.onload = function(){
-        WorkerFacade.callCallback();
-    };
-    document.body.appendChild(scr);
 }
 
 Mapnificent.addLayer("urbanDistance", function (mapnificent){
@@ -125,34 +117,33 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         if(rad === 0){
             return [indizes];
         }
-        var results = [];
-        var maxDistanceToEdge = Math.max(Math.abs(blockCountX-indizes[0]), Math.abs(indizes[1]-blockCountY));
-        var nearestObjects = [];
+        var results = [], nearestObjects = [], start, maxDistanceToEdge, nx, ny;
+        maxDistanceToEdge = Math.max(Math.abs(blockCountX-indizes[0]), Math.abs(indizes[1]-blockCountY));
         if(!!all){
-            var start = 0;
+            start = 0;
         } else {
-            var start = rad;
+            start = rad;
         }
         for(var i=start;i<maxDistanceToEdge;i++){
             for (var j=-i;j<(i+1);j++){
-                var nx = indizes[0]-i;
-                var ny = indizes[1]+j;
+                nx = indizes[0]-i;
+                ny = indizes[1]+j;
                 if(nx>=0 && ny < blockCountY && ny > 0){
                     results.push([nx,ny]);
                 }
-                var nx = indizes[0]+i;
-                var ny = indizes[1]+j;
+                nx = indizes[0]+i;
+                ny = indizes[1]+j;
                 if(nx < blockCountX && ny < blockCountY && ny > 0){
                     results.push([nx,ny]);
                 }
                 if(j>-i && j<i){
-                    var nx = indizes[0]+j;
-                    var ny = indizes[1]-i;
+                    nx = indizes[0]+j;
+                    ny = indizes[1]-i;
                     if(nx < blockCountX && nx > 0 && ny >= 0){
                         results.push([nx,ny]);
                     }
-                    var nx = indizes[0]+j;
-                    var ny = indizes[1]-i;
+                    nx = indizes[0]+j;
+                    ny = indizes[1]-i;
                     if(nx < blockCountX && nx > 0 && ny >= 0){
                         results.push([nx,ny]);
                     }
@@ -166,7 +157,7 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
     var updateGoby = function(e){
         var newMaxWalkTime, newMinutesPerKm;
         try{
-            newMaxWalkTime = parseInt(jQuery('#'+that.idname+'-gotime').val());
+            newMaxWalkTime = parseInt(jQuery('#'+that.idname+'-gotime').val(), 10);
         } catch(e){
             return;
         }
@@ -460,10 +451,10 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
         stations = dataobjs[0];
         lines = dataobjs[1];
         blockGrid = [];
-        for(var i=0;i<blockCountX;i+=1){
+        for(var j=0;j<blockCountX;j+=1){
             blockGrid.push([]);
-            for(var j=0;j<blockCountX;j+=1){
-                blockGrid[i].push([]);
+            for(var k=0;k<blockCountX;k+=1){
+                blockGrid[j].push([]);
             }
         }
         stationList = [];
@@ -488,11 +479,7 @@ Mapnificent.addLayer("urbanDistance", function (mapnificent){
             }
         }
         appendControlHtmlTo(controlcontainer);
-        if(!!WorkerFacade.fake){
-            WorkerFacade.callback(function(){addPosition(defaultStartAtPosition);});
-        } else {
-            addPosition(defaultStartAtPosition);
-        }
+        addPosition(defaultStartAtPosition);
     };
     
     that.calculate = function(index, clb){
