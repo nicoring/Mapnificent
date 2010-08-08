@@ -66,7 +66,7 @@
         <div id="map"></div>
         <div id="controls" class="controlsoverlay"></div>
         <div id="message" class="shortoverlay" style="display:none"></div>
-        <script src="media/js/mapnificent.js?version=0-91" type="text/javascript" charset="utf-8"></script>
+        <script src="media/js/mapnificent.js?version=0-95" type="text/javascript" charset="utf-8"></script>
         <script type="text/javascript" charset="utf-8">
             // if($.cookie("seenVideo") == null){
             //     $("#video").show();
@@ -84,13 +84,14 @@
                      , "colorMaxGradientColor" : 120
                      , "estimatedMaxCalculateCalls": 700000
                     }
-                    },
+                },
                 "mapStyles": {"Night": [
                             {
                               "featureType": "all",
                               "rules": [{"invert_lightness": "true"}]
                             }        
-                          ]}
+                          ]},
+                "startMapStyle": "Night"
                 });
             mapnificent.addLayer("urbanDistance");
 

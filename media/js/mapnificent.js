@@ -7,6 +7,19 @@
 */
 
 var Mapnificent = (function(){
+    
+    var getOSMMapType = function(){
+        return new google.maps.ImageMapType({
+            getTileUrl: function(coord, zoom) {
+                return 'http://tile.openstreetmap.org/'+ zoom +'/'+ coord.x +'/' + coord.y +'.png';
+            },
+            tileSize: new google.maps.Size(256, 256),
+            isPng: true,
+            maxZoom: 18,
+            name: "OSM"
+        });
+    };
+    
     var CanvasOverlay = (function() {
         /* Most of this is from:
         http://code.google.com/apis/maps/documentation/javascript/overlays.html#CustomOverlays
@@ -132,6 +145,9 @@ var Mapnificent = (function(){
         defaults.northwest = {"lat":52.754364, "lng":12.882953};
         defaults.southeast = {"lat":52.29693, "lng":13.908883};
         defaults.mapStyles = {};
+        defaults.startMapStyle = null;
+        defaults.mapTypes = {"OSM": getOSMMapType()};
+        defaults.startMapType = google.maps.MapTypeId.ROADMAP;
         defaults.mapTypeIds = [google.maps.MapTypeId.ROADMAP];
         defaults.heightCacheFactor = 3;
         defaults.widthCacheFactor = 5;
@@ -191,16 +207,18 @@ var Mapnificent = (function(){
             that.env.heightInKm = that.getDistanceInKm(that.env.northwest, that.env.southwest);
             jQuery("#"+that.mapID).height(jQuery(window).height());
             that.env.getGMapOptions();
-            var lastStyle = google.maps.MapTypeId.ROADMAP;
             for(var style in that.env.mapStyles){
                 that.env.mapTypeIds.push(style);
-                lastStyle = style;
             }
+            for(var type in that.env.mapTypes){
+                that.env.mapTypeIds.push(type);
+            }
+
             
             var mapOptions = {
               "zoom": that.env.mapStartZoom
               , "center": new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng)
-              , "mapTypeId": lastStyle
+              , "mapTypeId": that.env.startMapType
               , "mapTypeControlOptions": {
                   "mapTypeIds": that.env.mapTypeIds
               }
@@ -210,10 +228,12 @@ var Mapnificent = (function(){
                 var styledMapType = new google.maps.StyledMapType(that.env.mapStyles[style], {name: style});
                 that.map.mapTypes.set(style, styledMapType);
             }
-            // that.map.setCenter(new google.maps.LatLng(that.env.mapStartCenter.lat, that.env.mapStartCenter.lng), that.env.mapStartZoom);
-            //that.map.enableScrollWheelZoom();
-            // that.map.addControl(new GLargeMapControl());
-            // that.map.addControl(new GMapTypeControl());
+            for(var type in that.env.mapTypes){
+                that.map.mapTypes.set(type, that.env.mapTypes[type]);
+            }
+            if(that.env.startMapStyle){
+                that.map.setMapTypeId(that.env.startMapStyle);
+            }
             if(that.env.getGMapOptions()["googleBarOptions"] !== "undefined"){
                 // that.map.enableGoogleBar();            
             }
