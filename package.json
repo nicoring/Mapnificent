@@ -1,0 +1,23 @@
+{
+  "name": "mapnificent",
+  "version": "0.0.1",
+  "description": "Mapnificent by Stefan Wehrmeier as backend solution for NodeJS",
+  "homepage": "http://github.com/NicoRing/Mapnificent",
+  "keywords": ["map", "tree", "quadtree", "mapnificent"],
+  "licenses": [{
+    "type": "GNU"
+  }],
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/NicoRing/Mapnificent"
+  },
+  "contributors": [
+    "Sven Mischkewitz <01Track1mp3>",
+    "Nico Ring <nicoring>",
+    "Stefan Wehrmeier <stefanw>"
+  ],
+  "private": true,
+  "dependencies": {
+    "quadtree": "01Track1mp3/Quadtree"
+  }
+}
