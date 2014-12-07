@@ -2,8 +2,6 @@ var Mapnificent = require('./lib/mapnificent');
 
 // TESTING
 
-debugger;
-
 var m = new Mapnificent({
 	active: true,
 	added: '2010-10-03T12:05:26.240272',
@@ -29,9 +27,13 @@ var m = new Mapnificent({
 	zoom: 11
 });
 
-debugger;
-
 m.init();
-m.addPosition({ lat: 52.52026, lng: 13.38832 });
+m.addPosition({ lat: 52.52026, lng: 13.38832 })
+	.on('done', function() {
+		console.log(arguments);
+		console.log(m.positions);
+	})
+	.on('progress', function(percent) {
+		console.log('percent', percent);
+	});
 
-debugger;
