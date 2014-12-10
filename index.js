@@ -29,9 +29,8 @@ var m = new Mapnificent({
 
 m.init();
 m.addPosition({ lat: 52.52026, lng: 13.38832 })
-	.on('done', function() {
-		console.log(arguments);
-		console.log(m.positions);
+	.on('done', function(mapnificentPosition, data) {
+		// console.log(data);
 	})
 	.on('progress', function(percent) {
 		console.log('percent', percent);
