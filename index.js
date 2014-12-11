@@ -28,7 +28,9 @@ var m = new Mapnificent({
 });
 
 m.init();
-m.addPosition({ lat: 52.52026, lng: 13.38832 })
+var pos = m.addPosition({ lat: 52.52026, lng: 13.38832 });
+
+pos
 	.on('done', function(mapnificentPosition, data) {
 		// console.log(data);
 	})
@@ -36,3 +38,5 @@ m.addPosition({ lat: 52.52026, lng: 13.38832 })
 		console.log('percent', percent);
 	});
 
+pos.getAllStationsByDistanceAndTime()
+	.done(function(stations) { console.log("stations", stations); });
