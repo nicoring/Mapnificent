@@ -39,4 +39,10 @@ pos
 	});
 
 pos.getAllStationsByDistanceAndTime()
-	.done(function(stations) { console.log("stations", stations); });
+	.done(function(stations) { 
+		console.log("stations", stations);
+		var points = [{lat: 52.498274, lng: 13.406531}, {lat: 52.498574, lng: 13.406521}, {lat: 60, lng: 60}];
+		var remainingPoints = pos.intersectPointsWithStations(points);
+
+		console.log("filtered points", remainingPoints);
+	});
