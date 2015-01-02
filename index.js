@@ -28,21 +28,45 @@ var m = new Mapnificent({
 });
 
 m.init();
-var pos = m.addPosition({ lat: 52.52026, lng: 13.38832 });
+var berlinZoo = {lat: 52.5074, lng: 13.3326};
+var overallTime = Date.now();
+var pos = m.addPosition(berlinZoo); // friedr str. { lat: 52.52026, lng: 13.38832 }
 
+var globPercent = 0;
 pos
-	.on('done', function(mapnificentPosition, data) {
-		// console.log(data);
-	})
 	.on('progress', function(percent) {
-		console.log('percent', percent);
+		if (percent > globPercent + 5) {
+			console.log('progress', Math.floor(percent) +"%");
+			globPercent = percent;
+		}
 	});
 
+var timeStations = Date.now();
+console.log("\ncollecting reachable stations");
 pos.getAllStationsByDistanceAndTime()
 	.done(function(stations) { 
-		console.log("stations", stations);
-		var points = [{lat: 52.498274, lng: 13.406531}, {lat: 52.498574, lng: 13.406521}, {lat: 60, lng: 60}];
+		var time = Date.now();
+		console.log("reachable stations time:", time-timeStations +"ms\n");
+
+		console.log("aabb\n", stations.aabb, "\n");
+
+		console.log("reading POI file");
+		var points = require('./places.json');//[{lat: 52.498274, lng: 13.406531}, {lat: 52.498574, lng: 13.406521}, {lat: 60, lng: 60}];
+		console.log("reading time:", Date.now()-time +"ms\n");
+
+		console.log("intersecting POIs with stationMap");
+		time = Date.now();
+
 		var remainingPoints = pos.intersectPointsWithStations(points);
 
-		console.log("filtered points", remainingPoints);
+		console.log("intersection time:", (Date.now()-time) +"ms\n");
+
+		time = Date.now();
+		console.log("writing results to file");
+
+		var fs = require('fs');
+		fs.writeFile("filtered.json", JSON.stringify(remainingPoints), function() { 
+			console.log("writing time:", Date.now()-time +"ms\n");
+			console.log("overall time:", Date.now()-overallTime +"ms");
+		});
 	});
