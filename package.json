@@ -1,5 +1,6 @@
 {
   "name": "mapnificent",
+  "main": "./lib/mapnificent.js",
   "version": "0.0.1",
   "description": "Mapnificent by Stefan Wehrmeier as backend solution for NodeJS",
   "homepage": "http://github.com/NicoRing/Mapnificent",
