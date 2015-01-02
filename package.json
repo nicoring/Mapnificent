@@ -29,6 +29,6 @@
     "backbone-events": "0.0.0",
     "jquery-deferred": "^0.3.0",
     "lodash": "^2.4.1",
-    "quadtree": "01Track1mp3/Quadtree",
+    "quadtree": "01Track1mp3/Quadtree"
   }
 }
