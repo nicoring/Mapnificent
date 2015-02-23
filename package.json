@@ -2,7 +2,7 @@
   "name": "mapnificent",
   "main": "./lib/mapnificent.js",
   "version": "0.0.1",
-  "description": "Mapnificent by Stefan Wehrmeier as backend solution for NodeJS",
+  "description": "Mapnificent by Stefan Wehrmeyer as backend solution for NodeJS",
   "homepage": "http://github.com/NicoRing/Mapnificent",
   "keywords": [
     "map",
@@ -22,7 +22,7 @@
   "contributors": [
     "Sven Mischkewitz <01Track1mp3>",
     "Nico Ring <nicoring>",
-    "Stefan Wehrmeier <stefanw>"
+    "Stefan Wehrmeyer <stefanw>"
   ],
   "private": true,
   "dependencies": {
